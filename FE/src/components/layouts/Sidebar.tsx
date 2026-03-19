@@ -19,7 +19,12 @@ import { Link, useLocation } from "react-router-dom";
 // Sidebar Context for managing state
 const SidebarContext = React.createContext({ expanded: true });
 
-const Sidebar = ({ expanded, setExpanded }) => {
+interface SidebarProps {
+  expanded: boolean;
+  setExpanded: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+const Sidebar = ({ expanded, setExpanded }: SidebarProps) => {
   return (
     <aside className="h-screen bg-white border-r shadow-sm">
       <nav className="h-full flex flex-col">
@@ -45,14 +50,14 @@ const Sidebar = ({ expanded, setExpanded }) => {
         </div>
         <SidebarContext.Provider value={{ expanded }}>
           <ul className="flex-1 px-3 space-y-1">
-            <NavItem icon={<LayoutDashboard />} text="Dashboard" to="/dashboard" />
+            <NavItem icon={<LayoutDashboard />} text="Dashboard" to="/dashboard" alert />
             <NavItem icon={<FileText />} text="Invoices" to="/invoices" alert />
-            <NavItem icon={<Users />} text="Customers" to="/customers" />
-            <NavItem icon={<Package />} text="Products" to="/products" />
-            <NavItem icon={<ShoppingCart />} text="Orders" to="/orders" />
+            <NavItem icon={<Users />} text="Customers" to="/customers"alert />
+            <NavItem icon={<Package />} text="Products" to="/products" alert/>
+            <NavItem icon={<ShoppingCart />} text="Orders" to="/orders" alert/>
             <hr className="my-3 border-white/40" />
-            <NavItem icon={<Settings />} text="Settings" to="/settings" />
-            <NavItem icon={<HelpCircle />} text="Help & Support" to="/help" />
+            <NavItem icon={<Settings />} text="Settings" to="/settings" alert/>
+            <NavItem icon={<HelpCircle />} text="Help & Support" to="/help"alert />
           </ul>
         </SidebarContext.Provider>
 
@@ -86,7 +91,14 @@ const Sidebar = ({ expanded, setExpanded }) => {
   );
 };
 
-const NavItem = ({ icon, text, to, alert }) => {
+interface NavItemProps {
+  icon: React.ReactNode;
+  text: string;
+  to: string;
+  alert?: boolean;
+}
+
+const NavItem = ({ icon, text, to, alert }: NavItemProps) => {
   const { expanded } = React.useContext(SidebarContext);
   const location = useLocation();
   const isActive = location.pathname === to;

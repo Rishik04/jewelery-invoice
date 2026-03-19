@@ -1,7 +1,8 @@
 import { useLogin, useOnboard } from "@/features/auth/useAuth";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ArrowLeft, ArrowRight, Briefcase, Building, Lock, Mail,
+  ArrowLeft, ArrowRight,
+  Building, Lock, Mail,
   Shield, Sparkles, User, Zap
 } from "lucide-react";
 import { useCallback, useState } from "react";
@@ -18,9 +19,7 @@ const InputField = ({
   value,
   onChange,
   error = null,
-  showToggle = false,
   showPassword = false,
-  setShowPassword = null,
 }: any) => (
   <div className="relative group">
     <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
@@ -125,11 +124,6 @@ const ModernOnboarding = () => {
     }
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
-  };
-
   const stepVariants = {
     hidden: { opacity: 0, x: 50 },
     visible: { opacity: 1, x: 0, transition: { duration: 0.4 } },
@@ -143,7 +137,7 @@ const ModernOnboarding = () => {
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
       </div>
 
-      <motion.div variants={containerVariants} initial="hidden" animate="visible"
+      <motion.div initial="hidden" animate="visible"
         className="relative z-10 w-full max-w-6xl mx-auto">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Hero */}
