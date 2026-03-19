@@ -7,6 +7,8 @@ import morgan from "morgan";
 import authRoutes from "./routes/auth.routes.js";
 import companyRoutes from "./routes/company.routes.js";
 import invoiceRoutes from "./routes/invoice.routes.js";
+import * as dotenv from "dotenv";
+dotenv.config();
 
 // import errorMiddleware from "./middleware/error.middleware.js";
 
