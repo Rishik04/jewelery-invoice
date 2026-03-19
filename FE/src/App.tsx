@@ -6,6 +6,7 @@ import InvoicePage from "./components/Invoice";
 import InvoiceForm from "./components/InvoiceForm";
 import DashboardLayout from "./components/layouts/DashboardLayout";
 import ProductsPage from "./components/ProductsPage";
+import { JSX } from "react";
 
 const isLoggedIn = () => !!localStorage.getItem("token");
 

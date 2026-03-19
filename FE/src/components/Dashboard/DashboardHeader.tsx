@@ -10,7 +10,7 @@ import {
   Upload
 } from 'lucide-react';
 
-const ModernDashboardHeader = ({ stats, loading }) => {
+const ModernDashboardHeader = () => {
   const quickActions = [
     { icon: PlusCircle, label: 'New Company', action: () => console.log('New Company') },
     { icon: Upload, label: 'Import Data', action: () => console.log('Import') },
