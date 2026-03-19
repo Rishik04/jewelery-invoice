@@ -1,0 +1,18 @@
+{
+  "redirects": [
+    {
+      "source": "/:path*",
+      "destination": "https://www.suniljewellers.cloud/:path*",
+      "permanent": true,
+      "has": [
+        { "type": "host", "value": "suniljewellers.cloud" }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
