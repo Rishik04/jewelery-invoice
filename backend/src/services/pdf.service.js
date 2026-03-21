@@ -527,12 +527,13 @@ const generateFooter = (doc, company) => {
 
   const terms = company.termsConditions || [];
   terms.forEach((term, index) => {
-    doc.text(`${index + 1}. ${term}`);
+    doc.font("semiBold").text(`${index + 1}. ${term}`);
   });
 
   doc
+    .moveUp(10)
     .text(`FOR ${company.name.toUpperCase()}`, { align: "right" })
-    .moveDown(10)
+    .moveDown(9)
     .text("Authorized Signatory", { align: "right" });
 
   const logoPath = path.join(IMAGE_PATH, "logo.png");
