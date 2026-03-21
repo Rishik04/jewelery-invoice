@@ -7,17 +7,34 @@ import {
 import React, { useEffect, useState } from "react";
 
 const InputField = React.memo(
-  ({ label, placeholder, type = "text", icon: Icon, required = false, value, error, onChange }: any) => (
+  ({ label, placeholder, type = "text", icon: Icon, required = false, value, error, onChange, multiline = false }: any) => (
     <motion.div className="space-y-2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
       <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
         {Icon && <Icon size={16} />}{label}
         {required && <span className="text-red-500">*</span>}
       </label>
+
       <div className="relative">
-        <input type={type} placeholder={placeholder} value={value || ""}
-          onChange={(e) => onChange(e.target.value)}
-          className={`w-full px-4 py-3.5 bg-gray-50/80 border-2 rounded-xl outline-none font-medium transition-all
-            ${error ? "border-red-300 bg-red-50/50" : "border-gray-200 hover:border-gray-300 focus:border-blue-400 focus:bg-white"}`} />
+        {multiline ? (
+          <textarea
+            rows={4}
+            placeholder={placeholder}
+            value={value || ""}
+            onChange={(e) => onChange(e.target.value)}
+            className={`w-full px-4 py-3.5 bg-gray-50/80 border-2 rounded-xl outline-none font-medium transition-all resize-none
+              ${error ? "border-red-300 bg-red-50/50" : "border-gray-200 hover:border-gray-300 focus:border-blue-400 focus:bg-white"}`}
+          />
+        ) : (
+          <input
+            type={type}
+            placeholder={placeholder}
+            value={value || ""}
+            onChange={(e) => onChange(e.target.value)}
+            className={`w-full px-4 py-3.5 bg-gray-50/80 border-2 rounded-xl outline-none font-medium transition-all
+              ${error ? "border-red-300 bg-red-50/50" : "border-gray-200 hover:border-gray-300 focus:border-blue-400 focus:bg-white"}`}
+          />
+        )}
+
         {error && (
           <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
             className="text-red-500 text-sm mt-1 flex items-center gap-1">
@@ -119,7 +136,10 @@ const ModernCompanyForm = ({ company, onClose, isOpen }: any) => {
       ...formData,
       phone: formData.phone ? formData.phone.split(",").map((p: string) => p.trim()).filter(Boolean) : [],
       termsConditions: formData.termsConditions
-        ? formData.termsConditions.split("\n").map((t: string) => t.trim()).filter(Boolean)
+        ? formData.termsConditions
+          .split(/\r?\n/)
+          .map((t: string) => t.trim())
+          .filter((t: string) => t.length > 0)
         : [],
       // FIX: flatten address & bank fields for /company/add endpoint (which expects flat body)
       street: formData.address?.street,
@@ -198,8 +218,14 @@ const ModernCompanyForm = ({ company, onClose, isOpen }: any) => {
               <InputField label="Branch" value={formData.bank?.branch} onChange={(v: any) => handleInputChange("bank.branch", v)} placeholder="Dadar Branch" icon={Building2} />
               <InputField label="Account Number" value={formData.bank?.accountNumber} onChange={(v: any) => handleInputChange("bank.accountNumber", v)} error={errors["bank.accountNumber"]} placeholder="XXXXXXXX" icon={CreditCard} required />
               <InputField label="IFSC Code" value={formData.bank?.ifsc} onChange={(v: any) => handleInputChange("bank.ifsc", v)} error={errors["bank.ifsc"]} placeholder="SBIN0001234" icon={Hash} required />
-              <InputField label="Terms & Conditions (one per line)" value={formData.termsConditions} onChange={(v: any) => handleInputChange("termsConditions", v)} placeholder="No exchange without receipt&#10;Goods once sold..." icon={FileSignature} />
-            </motion.div>
+              <InputField
+                label="Terms & Conditions (one per line)"
+                value={formData.termsConditions}
+                onChange={(v: any) => handleInputChange("termsConditions", v)}
+                placeholder={`No exchange without receipt Goods once sold will not be taken back`}
+                icon={FileSignature}
+                multiline
+              />            </motion.div>
           )}
         </AnimatePresence>
 
