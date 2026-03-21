@@ -2,14 +2,13 @@ import {
   useCreateProduct,
   useDeleteProduct,
   useProducts,
+  useUpdateProduct,
   type Product,
 } from "@/features/product/useProduct";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
-  Box,
   ChevronDown,
-  Diamond,
   Gem,
   Hash,
   Package,
@@ -18,14 +17,14 @@ import {
   Sparkles,
   Tag,
   Trash2,
-  X,
+  X
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const CATEGORIES = ["GOLD", "SILVER"] as const;
-const KARATS = ["14K", "18K", "22K", "24K"] as const;
+const KARATS = ["18K", "22K", "24K"] as const;
 
 const PRODUCT_TYPES = [
   "Ring",
@@ -38,8 +37,6 @@ const PRODUCT_TYPES = [
   "Anklet",
   "Mangalsutra",
   "Nose Pin",
-  "Brooch",
-  "Cufflink",
   "Coin",
   "Bar",
   "Other",
@@ -48,8 +45,6 @@ const PRODUCT_TYPES = [
 const HSN_MAP: Record<string, string> = {
   GOLD: "7113",
   SILVER: "7113",
-  PLATINUM: "7113",
-  DIAMOND: "7102",
 };
 
 const CATEGORY_META: Record<
@@ -79,22 +74,6 @@ const CATEGORY_META: Record<
     accent: "text-slate-600",
     softBorder: "border-slate-200/60",
   },
-  DIAMOND: {
-    icon: Diamond,
-    gradient: "from-cyan-400 to-blue-500",
-    bg: "from-cyan-50 to-blue-50",
-    label: "Diamond",
-    accent: "text-cyan-600",
-    softBorder: "border-cyan-200/60",
-  },
-  PLATINUM: {
-    icon: Box,
-    gradient: "from-violet-400 to-purple-500",
-    bg: "from-violet-50 to-purple-50",
-    label: "Platinum",
-    accent: "text-violet-600",
-    softBorder: "border-violet-200/60",
-  },
 };
 
 // ─── Product Card ─────────────────────────────────────────────────────────────
@@ -103,10 +82,12 @@ const ProductCard = ({
   product,
   index,
   onDelete,
+  onEdit
 }: {
   product: Product;
   index: number;
   onDelete: (id: string) => void;
+  onEdit: (product: Product) => void;
 }) => {
   const meta = CATEGORY_META[product.category];
   const Icon = meta.icon;
@@ -138,6 +119,14 @@ const ProductCard = ({
             className="rounded-lg p-1.5 text-gray-300 transition-all hover:bg-red-50 hover:text-red-500 sm:opacity-0 sm:group-hover:opacity-100"
           >
             <Trash2 size={15} />
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.94 }}
+            onClick={() => onEdit(product)}
+            className="rounded-lg p-1.5 text-gray-300 transition-all hover:bg-blue-50 hover:text-blue-500 sm:opacity-0 sm:group-hover:opacity-100"
+          >
+            ✏️
           </motion.button>
         </div>
 
@@ -180,11 +169,30 @@ const ProductCard = ({
 const AddProductPanel = ({
   open,
   onClose,
+  product
 }: {
   open: boolean;
   onClose: () => void;
+  product?: Product | null;
 }) => {
   const createProduct = useCreateProduct();
+  const updateProduct = useUpdateProduct();
+
+  useEffect(() => {
+    if (product) {
+      setForm({
+        name: product.name || "",
+        type: PRODUCT_TYPES.includes(product.type as any)
+          ? product.type
+          : "Other",
+        customType: PRODUCT_TYPES.includes(product.type as any)
+          ? ""
+          : product.type || "",
+        category: product.category,
+        karat: product.karat || "22K",
+      });
+    }
+  }, [product]);
 
   const [form, setForm] = useState({
     name: "",
@@ -223,22 +231,27 @@ const AddProductPanel = ({
         ? form.customType.trim()
         : form.type || form.customType.trim();
 
-    await createProduct.mutateAsync({
+    const payload = {
       name: form.name.trim(),
       type: productType,
       category: form.category,
       karat: form.category === "GOLD" ? form.karat : undefined,
-    });
+    };
 
-    setForm({
-      name: "",
-      type: "",
-      customType: "",
-      category: "GOLD",
-      karat: "22K",
-    });
-    setErrors({});
-    onClose();
+    try {
+      if (product?._id) {
+        await updateProduct.mutateAsync({
+          ...payload,
+          productId: product._id,
+        });
+      } else {
+        await createProduct.mutateAsync(payload);
+      }
+
+      onClose();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const meta = CATEGORY_META[form.category];
@@ -264,7 +277,9 @@ const AddProductPanel = ({
           >
             <div className={`bg-gradient-to-r ${meta.gradient} p-5 text-white sm:p-6`}>
               <div className="mb-1 flex items-center justify-between gap-3">
-                <h2 className="text-lg font-bold sm:text-xl">Add Product</h2>
+                <h2 className="text-lg font-bold sm:text-xl">
+                  {product ? "Edit Product" : "Add Product"}
+                </h2>
                 <motion.button
                   whileHover={{ scale: 1.08, rotate: 90 }}
                   whileTap={{ scale: 0.94 }}
@@ -298,11 +313,10 @@ const AddProductPanel = ({
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => set("category", cat)}
-                        className={`relative flex items-center gap-3 rounded-xl border-2 p-3.5 text-left transition-all ${
-                          active
-                            ? `bg-gradient-to-r ${m.bg} shadow-md border-transparent`
-                            : "border-gray-200 bg-white hover:border-gray-300"
-                        }`}
+                        className={`relative flex items-center gap-3 rounded-xl border-2 p-3.5 text-left transition-all ${active
+                          ? `bg-gradient-to-r ${m.bg} shadow-md border-transparent`
+                          : "border-gray-200 bg-white hover:border-gray-300"
+                          }`}
                       >
                         <div
                           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${m.gradient}`}
@@ -312,9 +326,8 @@ const AddProductPanel = ({
 
                         <div className="min-w-0">
                           <p
-                            className={`text-sm font-bold ${
-                              active ? m.accent : "text-gray-700"
-                            }`}
+                            className={`text-sm font-bold ${active ? m.accent : "text-gray-700"
+                              }`}
                           >
                             {m.label}
                           </p>
@@ -342,11 +355,10 @@ const AddProductPanel = ({
                   value={form.name}
                   onChange={(e) => set("name", e.target.value)}
                   placeholder="e.g. Ladies Diamond Solitaire Ring"
-                  className={`w-full rounded-xl border-2 px-4 py-3 text-sm font-medium outline-none transition-all ${
-                    errors.name
-                      ? "border-red-300 bg-red-50/50"
-                      : "border-gray-200 bg-gray-50/80 hover:border-gray-300 focus:border-blue-400 focus:bg-white"
-                  }`}
+                  className={`w-full rounded-xl border-2 px-4 py-3 text-sm font-medium outline-none transition-all ${errors.name
+                    ? "border-red-300 bg-red-50/50"
+                    : "border-gray-200 bg-gray-50/80 hover:border-gray-300 focus:border-blue-400 focus:bg-white"
+                    }`}
                 />
 
                 {errors.name && (
@@ -366,11 +378,10 @@ const AddProductPanel = ({
                   <select
                     value={form.type}
                     onChange={(e) => set("type", e.target.value)}
-                    className={`w-full appearance-none rounded-xl border-2 px-4 py-3 text-sm font-medium outline-none transition-all ${
-                      errors.type
-                        ? "border-red-300 bg-red-50/50"
-                        : "border-gray-200 bg-gray-50/80 hover:border-gray-300 focus:border-blue-400"
-                    }`}
+                    className={`w-full appearance-none rounded-xl border-2 px-4 py-3 text-sm font-medium outline-none transition-all ${errors.type
+                      ? "border-red-300 bg-red-50/50"
+                      : "border-gray-200 bg-gray-50/80 hover:border-gray-300 focus:border-blue-400"
+                      }`}
                   >
                     <option value="">Select type…</option>
                     {PRODUCT_TYPES.map((t) => (
@@ -426,11 +437,10 @@ const AddProductPanel = ({
                           whileHover={{ scale: 1.04 }}
                           whileTap={{ scale: 0.96 }}
                           onClick={() => set("karat", k)}
-                          className={`rounded-xl border-2 py-2.5 text-sm font-bold transition-all ${
-                            form.karat === k
-                              ? "border-amber-400 bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 shadow-sm"
-                              : "border-gray-200 text-gray-500 hover:border-gray-300"
-                          }`}
+                          className={`rounded-xl border-2 py-2.5 text-sm font-bold transition-all ${form.karat === k
+                            ? "border-amber-400 bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 shadow-sm"
+                            : "border-gray-200 text-gray-500 hover:border-gray-300"
+                            }`}
                         >
                           {k}
                         </motion.button>
@@ -486,7 +496,7 @@ const AddProductPanel = ({
                 ) : (
                   <>
                     <Plus size={20} />
-                    Add to Catalog
+                    {product ? "Update Product" : "Add to Catalog"}
                   </>
                 )}
               </motion.button>
@@ -604,11 +614,11 @@ const StatsBar = ({ products }: { products: Product[] }) => {
 const ProductsPage = () => {
   const { data: products = [], isLoading, error } = useProducts();
   const deleteProduct = useDeleteProduct();
-
   const [panelOpen, setPanelOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("ALL");
   const [toDelete, setToDelete] = useState<Product | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const filtered = useMemo(() => {
     return products.filter((p) => {
@@ -694,13 +704,12 @@ const ProductsPage = () => {
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.97 }}
                     onClick={() => setActiveCategory(cat)}
-                    className={`flex-shrink-0 rounded-xl px-4 py-2 text-sm font-bold transition-all ${
-                      active
-                        ? meta
-                          ? `bg-gradient-to-r ${meta.gradient} text-white shadow-md`
-                          : "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
-                        : "text-gray-500 hover:bg-gray-100"
-                    }`}
+                    className={`flex-shrink-0 rounded-xl px-4 py-2 text-sm font-bold transition-all ${active
+                      ? meta
+                        ? `bg-gradient-to-r ${meta.gradient} text-white shadow-md`
+                        : "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
+                      : "text-gray-500 hover:bg-gray-100"
+                      }`}
                   >
                     {cat === "ALL" ? "All" : CATEGORY_META[cat].label}
                   </motion.button>
@@ -777,6 +786,10 @@ const ProductsPage = () => {
                   key={p._id}
                   product={p}
                   index={i}
+                  onEdit={(product) => {
+                    setEditingProduct(product);
+                    setPanelOpen(true)
+                  }}
                   onDelete={(id) =>
                     setToDelete(products.find((x) => x._id === id) || null)
                   }
@@ -787,8 +800,14 @@ const ProductsPage = () => {
         )}
       </motion.div>
 
-      <AddProductPanel open={panelOpen} onClose={() => setPanelOpen(false)} />
-
+      <AddProductPanel
+        open={panelOpen}
+        onClose={() => {
+          setPanelOpen(false);
+          setEditingProduct(null);
+        }}
+        product={editingProduct}
+      />
       <DeleteDialog
         product={toDelete}
         onConfirm={handleDelete}

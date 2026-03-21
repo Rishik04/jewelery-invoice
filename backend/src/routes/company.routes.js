@@ -3,7 +3,7 @@ import { auth } from "../auth/auth.js";
 import { createAddress, updateAddress } from "../controllers/addresss.controller.js";
 import { createBank, updateBank } from "../controllers/bank.controller.js";
 import { addCompany, getCompany, getCompanyById, updateCompany } from "../controllers/company.controller.js";
-import { createProduct, getProducts, getProductsByType } from "../controllers/product.controller.js";
+import { createProduct, deleteProduct, getProducts, getProductsByType, updateProduct } from "../controllers/product.controller.js";
 
 const companyRoutes = express.Router();
 
@@ -25,5 +25,7 @@ companyRoutes.put("/update-bank-details/:id", auth, updateBank);
 companyRoutes.post("/add-product", auth, createProduct);
 companyRoutes.get("/get-products", auth, getProducts);
 companyRoutes.get("/get-products/:type", auth, getProductsByType);
+companyRoutes.put("/update-product/:productId", auth, updateProduct);
+companyRoutes.delete("/delete/:productId", auth, deleteProduct);
 
 export default companyRoutes;

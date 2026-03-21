@@ -11,15 +11,27 @@ import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export const InputField = React.memo(
-  ({ icon: Icon, type = "text", placeholder, value, onChange, className = "", label, ...props }: any) => (
+  ({ icon: Icon, type = "text", placeholder, value, onChange, className = "", label, error, ...props }: any) => (
     <motion.div className="relative group" whileHover={{ scale: 1.01 }}>
       <label className="text-sm font-semibold text-gray-700 flex items-center gap-2 py-1">
         {Icon && <Icon size={16} />}{label}
       </label>
-      <input type={type} value={value ?? ""} placeholder={placeholder}
+
+      <input
+        type={type}
+        value={value ?? ""}
+        placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className={`w-full px-4 py-3.5 bg-gray-50/80 border-2 rounded-xl outline-none font-medium transition-all border-gray-200 hover:border-gray-300 focus:border-blue-400 focus:bg-white ${className}`}
-        {...props} />
+        className={`w-full px-4 py-3.5 border-2 rounded-xl outline-none font-medium transition-all
+        ${error
+            ? "border-red-300 bg-red-50"
+            : "bg-gray-50/80 border-gray-200 hover:border-gray-300 focus:border-blue-400 focus:bg-white"
+          } ${className}`}
+        {...props}
+      />
+      {error && (
+        <p className="text-red-500 text-xs mt-1">{error}</p>
+      )}
     </motion.div>
   )
 );
@@ -45,7 +57,7 @@ const TYPE_TO_CATEGORY: Record<string, string> = {
   G: "GOLD", S: "SILVER", D: "DIAMOND", P: "PLATINUM",
 };
 
-const DescriptionInput = ({ value, onChange, typ, onProductSelect }: any) => {
+const DescriptionInput = ({ value, onChange, typ, onProductSelect, error }: any) => {
   const [search, setSearch] = useState(value || "");
   const [showDropdown, setShowDropdown] = useState(false);
   const category = TYPE_TO_CATEGORY[typ] || typ;
@@ -68,7 +80,13 @@ const DescriptionInput = ({ value, onChange, typ, onProductSelect }: any) => {
       <InputField label="Description" icon={FileText} placeholder="Product description" value={search}
         onChange={(v: string) => { setSearch(v); onChange(v); setShowDropdown(true); }}
         onFocus={() => setShowDropdown(true)}
-        onBlur={() => setTimeout(() => setShowDropdown(false), 200)} />
+        onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+        />
+      {error && (
+        <p className="text-red-500 text-xs mt-1">
+          {error}
+        </p>
+      )}
       {showDropdown && filtered.length > 0 && (
         <div className="absolute top-full mt-1 left-0 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-40 overflow-y-auto">
           {filtered.map((p: any) => (
@@ -96,6 +114,7 @@ const ModernInvoiceForm = () => {
   const printInvoiceMutation = usePrintInvoice();
   const { data: selectedCompany, isLoading, error } = useCompany();
   const navigate = useNavigate();
+  const [errors, setErrors] = useState<any>({});
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -115,6 +134,38 @@ const ModernInvoiceForm = () => {
     });
   }, []);
 
+  const validateStep = () => {
+    const e: any = {};
+    if (step === 1) {
+      if (!formData.customer.name?.trim()) e["customer.name"] = "Customer name is required";
+      if (!formData.customer.phone?.trim()) {
+        e["customer.phone"] = "Phone is required";
+      } else if (!/^\d{10}$/.test(formData.customer.phone)) {
+        e["customer.phone"] = "Enter valid 10-digit phone";
+      }
+      if (!formData.customer.address?.trim()) e["customer.address"] = "Address is required";
+      if (!formData.date) e["date"] = "Date is required";
+    }
+    if (step === 2) {
+      formData.items.forEach((item, index) => {
+        if (!item.description?.trim()) e[`items.${index}.description`] = "Description required";
+        if (!item.netWeight || Number(item.netWeight) <= 0)
+          e[`items.${index}.netWeight`] = "Valid weight required";
+        if (!item.rate || Number(item.rate) <= 0)
+          e[`items.${index}.rate`] = "Valid rate required";
+        if (item.makingCharges < 0)
+          e[`items.${index}.makingCharges`] = "Invalid %";
+        if (item.otherCharges < 0)
+          e[`items.${index}.otherCharges`] = "Invalid amount";
+      });
+      if (formData.items.length === 0) {
+        e["items"] = "At least one item required";
+      }
+    }
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
   const addItem = () => setFormData(prev => ({ ...prev, items: [...prev.items, { ...EMPTY_ITEM }] }));
   const removeItem = (i: number) => setFormData(prev => ({ ...prev, items: prev.items.filter((_, idx) => idx !== i) }));
 
@@ -132,10 +183,9 @@ const ModernInvoiceForm = () => {
   }, [formData.items]);
 
   const handleSubmit = async () => {
+    if (!validateStep()) return;
     const payload = {
       ...formData,
-      // FIX: map items to the shape saveInvoiceInDB expects: productId from description lookup
-      // For now send weight/rate/makingCharges directly; backend resolves productId
       items: formData.items.map(i => ({
         ...i,
         weight: Number(i.netWeight),
@@ -163,7 +213,7 @@ const ModernInvoiceForm = () => {
     })),
   });
 
-   const handlePrint = async () => {
+  const handlePrint = async () => {
     try {
       await printInvoiceMutation.mutateAsync(buildPayload());
     } catch (err) {
@@ -273,14 +323,15 @@ const ModernInvoiceForm = () => {
                     <p className="text-gray-500">Enter customer details for this invoice</p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-                    <InputField label="Customer Name" icon={User} placeholder="Ramesh Sharma" value={formData.customer.name} onChange={(v: string) => handleInputChange("customer", v, null, "name")} />
-                    <InputField label="Phone" icon={Phone} placeholder="9876543210" value={formData.customer.phone} onChange={(v: string) => handleInputChange("customer", v, null, "phone")} />
-                    <InputField label="Address" icon={MapPin} placeholder="123 MG Road, Mumbai" value={formData.customer.address} onChange={(v: string) => handleInputChange("customer", v, null, "address")} />
-                    <InputField label="State" icon={MapPin} placeholder="Maharashtra" value={formData.customer.state} onChange={(v: string) => handleInputChange("customer", v, null, "state")} />
-                    <InputField label="Invoice Date" icon={Calendar} type="date" value={formData.date} onChange={(v: string) => handleInputChange("date", v)} />
+                    <InputField label="Customer Name" icon={User} placeholder="Ramesh Sharma" value={formData.customer.name} error={errors["customer.name"]} onChange={(v: string) => handleInputChange("customer", v, null, "name")} />
+                    <InputField label="Phone" icon={Phone} placeholder="9876543210" value={formData.customer.phone} error={errors["customer.phone"]} onChange={(v: string) => handleInputChange("customer", v, null, "phone")} />
+                    <InputField label="Address" icon={MapPin} placeholder="123 MG Road, Mumbai" value={formData.customer.address} error={errors["customer.address"]} onChange={(v: string) => handleInputChange("customer", v, null, "address")} />
+                    <InputField label="Invoice Date" icon={Calendar} type="date" value={formData.date} error={errors["customer.date"]} onChange={(v: string) => handleInputChange("date", v)} />
                   </div>
                   <div className="flex justify-center mt-8">
-                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setStep(2)}
+                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => {
+                      if (validateStep()) setStep(2);
+                    }}
                       className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl shadow-lg">
                       Continue <ChevronRight size={20} />
                     </motion.button>
@@ -315,6 +366,7 @@ const ModernInvoiceForm = () => {
                             value={item.description}
                             typ={item.type}
                             onChange={(v: string) => handleInputChange("description", v, index)}
+                             error={errors[`items.${index}.description`]} 
                             onProductSelect={(product: any) => {
                               handleInputChange("description", product.name, index);
                               handleInputChange("id", product._id, index);
@@ -328,13 +380,12 @@ const ModernInvoiceForm = () => {
                             }}
                           />
                           <InputField label="HSN Code" icon={Hash} value={item.hsnCode} onChange={(v: string) => handleInputChange("hsnCode", v, index)} />
-                          <SelectField label="Purity" icon={Sparkles} value={item.purity} onChange={(v: string) => handleInputChange("purity", v, index)}
-                            options={[{ value: "18K", label: "18K / 750" }, { value: "22K", label: "22K / 916" }, { value: "24K", label: "24K / 999" }]} placeholder="Select purity" />
-                          <InputField label="Gross Weight (g)" icon={Calculator} type="number" value={item.grossWeight} onChange={(v: string) => handleInputChange("grossWeight", v, index)} />
-                          <InputField label="Net Weight (g)" icon={Calculator} type="number" value={item.netWeight} onChange={(v: string) => handleInputChange("netWeight", v, index)} />
-                          <InputField label="Rate / 1g (₹)" icon={Calculator} type="number" value={item.rate} onChange={(v: string) => handleInputChange("rate", v, index)} />
-                          <InputField label="Making Charges %" icon={Calculator} type="number" value={item.makingCharges} onChange={(v: string) => handleInputChange("makingCharges", v, index)} />
-                          <InputField label="Other Charges (₹)" icon={Calculator} type="number" value={item.otherCharges} onChange={(v: string) => handleInputChange("otherCharges", v, index)} />
+                          <InputField label="Purity" icon={Sparkles} value={item.purity} onChange={(v: string) => handleInputChange("purity", v, index)} />
+                          <InputField label="Gross Weight (g)" icon={Calculator} type="number" value={item.grossWeight} error={errors[`items.${index}.netWeight`]} onChange={(v: string) => handleInputChange("grossWeight", v, index)} />
+                          <InputField label="Net Weight (g)" icon={Calculator} type="number" value={item.netWeight} error={errors[`items.${index}.netWeight`]} onChange={(v: string) => handleInputChange("netWeight", v, index)} />
+                          <InputField label="Rate / 1g (₹)" icon={Calculator} type="number" value={item.rate} error={errors[`items.${index}.rate`]} onChange={(v: string) => handleInputChange("rate", v, index)} />
+                          <InputField label="Making Charges %" icon={Calculator} type="number" value={item.makingCharges} error={errors[`items.${index}.makingCharges`]} onChange={(v: string) => handleInputChange("makingCharges", v, index)} />
+                          <InputField label="Other Charges (₹)" icon={Calculator} type="number" value={item.otherCharges} error={errors[`items.${index}.otherCharges`]} onChange={(v: string) => handleInputChange("otherCharges", v, index)} />
                         </div>
                       </motion.div>
                     ))}
@@ -391,8 +442,8 @@ const ModernInvoiceForm = () => {
             </AnimatePresence>
           </div>
         </div>
-      </motion.div>
-    </div>
+      </motion.div >
+    </div >
   );
 };
 

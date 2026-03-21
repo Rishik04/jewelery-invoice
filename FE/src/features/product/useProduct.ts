@@ -43,7 +43,18 @@ export const useCreateProduct = () => {
 export const useDeleteProduct = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => API.delete(`/company/product/${id}`),
+    mutationFn: (id: string) => API.delete(`/company/product-product/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["products"] });
+    },
+  });
+};
+
+export const useUpdateProduct = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<Product> & { productId: string }) =>
+      API.put(`/company/update-product/${data.productId}`, data), // ✅ correct endpoint
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["products"] });
     },

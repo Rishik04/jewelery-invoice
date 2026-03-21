@@ -464,17 +464,15 @@ const drawTotalsSection = (doc, config, totalAmount, totalWithGST) => {
 
   y += rowHeight;
   //-----------------------------------------------------------------
-  // doc
-  // .fontSize(11)
-  // .font("bold")
-  // .text(
-  //   `${CURRENCY} ${formatMoneyDisplay(roundOff(totalWithGST).roundedTotal)}`,
-  //   margin.left,
-  //   y,
-  //   {
-  //     align: "right",
-  //   },
-  // );
+  doc
+  .text(
+    `${CURRENCY} ${formatMoneyDisplay(roundOff(totalWithGST).roundedTotal)}`,
+    margin.left,
+    y,
+    {
+      align: "right",
+    },
+  );
 
   // doc.fontSize(10).font("bold").text("Final Amount", margin.left, y, {
   //   width: totalWidth - 90,
