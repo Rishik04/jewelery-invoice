@@ -375,10 +375,10 @@ const drawTotalsSection = (doc, config, totalAmount, totalWithGST) => {
 
   y -= 10;
   doc.text("Total", margin.left + 2, y, { align: "left" });
-  doc.text(calculateTotal(config.rows, 4), margin.left + 220, y, {
+  doc.text(calculateTotal(config.rows, 4), margin.left + 210, y, {
     align: "left",
   });
-  doc.text(calculateTotal(config.rows, 7), margin.left + 395, y, {
+  doc.text(calculateTotal(config.rows, 7), margin.left + 385, y, {
     align: "left",
   });
   doc.text(formatMoney(totalAmount), margin.left + totalWidth - 62, y, {
@@ -550,6 +550,7 @@ const generateFooter = (doc, company) => {
       .lineTo(LEFT + 200, HEIGHT + 70)
       .lineTo(LEFT, HEIGHT + 70)
       .lineTo(LEFT, HEIGHT)
+      .lineWidth(0.5)
       .stroke();
 
     doc
