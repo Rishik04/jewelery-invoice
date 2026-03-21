@@ -6,15 +6,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useLogout } from "@/features/auth/useAuth";
-import { BellRing, LogOutIcon, Menu, Moon, Search, Settings, Sun, User } from "lucide-react";
+import { LogOutIcon, Menu, Moon, Search, Settings, Sun, User } from "lucide-react";
 import {
   Menubar, MenubarContent, MenubarItem, MenubarMenu,
   MenubarSeparator, MenubarTrigger,
 } from "../ui/menubar";
 import Sidebar from "./Sidebar";
+import { useState } from "react";
 
 const Header = ({ expanded }: { expanded: boolean }) => {
   const logout = useLogout();
+  const [open, setOpen] = useState(false);
 
   return (
     <header
@@ -23,14 +25,14 @@ const Header = ({ expanded }: { expanded: boolean }) => {
     >
       <div className="flex h-16 items-center px-4 md:px-6">
         {/* Mobile sidebar */}
-        <Sheet>
+        <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <Button variant="outline" size="icon" className="md:hidden mr-2">
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-64">
-            <Sidebar expanded={true} setExpanded={() => {}} />
+            <Sidebar expanded={true} setExpanded={setOpen} />
           </SheetContent>
         </Sheet>
 
@@ -48,10 +50,6 @@ const Header = ({ expanded }: { expanded: boolean }) => {
 
         {/* Actions */}
         <div className="flex items-center gap-2 md:gap-3">
-          <Button variant="outline" size="icon" className="relative">
-            <BellRing className="h-4 w-4" />
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500" />
-          </Button>
 
           {/* Theme toggle (stub — add next-themes if needed) */}
           <DropdownMenu>

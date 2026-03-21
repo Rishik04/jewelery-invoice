@@ -17,7 +17,7 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 
 // Sidebar Context for managing state
-const SidebarContext = React.createContext({ expanded: true });
+const SidebarContext = React.createContext({ expanded: true, setExpanded: (_: boolean) => { }, });
 
 interface SidebarProps {
   expanded: boolean;
@@ -48,16 +48,16 @@ const Sidebar = ({ expanded, setExpanded }: SidebarProps) => {
             {expanded ? <ChevronFirst /> : <ChevronLast />}
           </Button>
         </div>
-        <SidebarContext.Provider value={{ expanded }}>
+        <SidebarContext.Provider value={{ expanded, setExpanded }}>
           <ul className="flex-1 px-3 space-y-1">
             <NavItem icon={<LayoutDashboard />} text="Dashboard" to="/dashboard" alert />
             <NavItem icon={<FileText />} text="Invoices" to="/invoices" alert />
-            <NavItem icon={<Users />} text="Customers" to="/customers"alert />
-            <NavItem icon={<Package />} text="Products" to="/products" alert/>
-            <NavItem icon={<ShoppingCart />} text="Orders" to="/orders" alert/>
+            <NavItem icon={<Users />} text="Customers" to="/customers" alert />
+            <NavItem icon={<Package />} text="Products" to="/products" alert />
+            <NavItem icon={<ShoppingCart />} text="Orders" to="/orders" alert />
             <hr className="my-3 border-white/40" />
-            <NavItem icon={<Settings />} text="Settings" to="/settings" alert/>
-            <NavItem icon={<HelpCircle />} text="Help & Support" to="/help"alert />
+            <NavItem icon={<Settings />} text="Settings" to="/settings" alert />
+            <NavItem icon={<HelpCircle />} text="Help & Support" to="/help" alert />
           </ul>
         </SidebarContext.Provider>
 
@@ -99,9 +99,12 @@ interface NavItemProps {
 }
 
 const NavItem = ({ icon, text, to, alert }: NavItemProps) => {
-  const { expanded } = React.useContext(SidebarContext);
+  const { expanded, setExpanded } = React.useContext(SidebarContext);
   const location = useLocation();
   const isActive = location.pathname === to;
+  const handleClick = () => {
+    setExpanded(false);
+  };
 
   return (
     <motion.li
@@ -118,7 +121,7 @@ const NavItem = ({ icon, text, to, alert }: NavItemProps) => {
         }
       `}
     >
-      <Link to={to} className="flex items-center w-full">
+      <Link to={to} onClick={handleClick} className="flex items-center w-full">
         <motion.div whileHover={{ scale: 1.1 }} className="text-indigo-500">
           {icon}
         </motion.div>

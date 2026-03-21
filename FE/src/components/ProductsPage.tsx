@@ -1,107 +1,189 @@
-import { useCreateProduct, useDeleteProduct, useProducts, type Product } from "@/features/product/useProduct";
+import {
+  useCreateProduct,
+  useDeleteProduct,
+  useProducts,
+  type Product,
+} from "@/features/product/useProduct";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  AlertTriangle, Box, ChevronDown, Diamond, Gem, Hash,
-  Package, Plus, Search, Sparkles, Tag, Trash2, X,
+  AlertTriangle,
+  Box,
+  ChevronDown,
+  Diamond,
+  Gem,
+  Hash,
+  Package,
+  Plus,
+  Search,
+  Sparkles,
+  Tag,
+  Trash2,
+  X,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const CATEGORIES = ["GOLD", "SILVER", "DIAMOND", "PLATINUM"] as const;
-
+const CATEGORIES = ["GOLD", "SILVER"] as const;
 const KARATS = ["14K", "18K", "22K", "24K"] as const;
 
-// Common jewellery types — user can also type a custom value
 const PRODUCT_TYPES = [
-  "Ring", "Necklace", "Bangle", "Bracelet", "Earring",
-  "Pendant", "Chain", "Anklet", "Mangalsutra", "Nose Pin",
-  "Brooch", "Cufflink", "Coin", "Bar", "Other",
-];
+  "Ring",
+  "Necklace",
+  "Bangle",
+  "Bracelet",
+  "Earring",
+  "Pendant",
+  "Chain",
+  "Anklet",
+  "Mangalsutra",
+  "Nose Pin",
+  "Brooch",
+  "Cufflink",
+  "Coin",
+  "Bar",
+  "Other",
+] as const;
 
 const HSN_MAP: Record<string, string> = {
-  GOLD: "7113", SILVER: "7113", PLATINUM: "7113", DIAMOND: "7102",
+  GOLD: "7113",
+  SILVER: "7113",
+  PLATINUM: "7113",
+  DIAMOND: "7102",
 };
 
-const CATEGORY_META: Record<string, {
-  icon: React.FC<any>;
-  gradient: string;
-  bg: string;
-  label: string;
-  accent: string;
-}> = {
-  GOLD:     { icon: Sparkles,  gradient: "from-amber-400 to-yellow-500",   bg: "from-amber-50 to-yellow-50",   label: "Gold",     accent: "text-amber-600"  },
-  SILVER:   { icon: Gem,       gradient: "from-slate-400 to-gray-500",     bg: "from-slate-50 to-gray-100",    label: "Silver",   accent: "text-slate-600"  },
-  DIAMOND:  { icon: Diamond,   gradient: "from-cyan-400 to-blue-500",      bg: "from-cyan-50 to-blue-50",      label: "Diamond",  accent: "text-cyan-600"   },
-  PLATINUM: { icon: Box,       gradient: "from-violet-400 to-purple-500",  bg: "from-violet-50 to-purple-50",  label: "Platinum", accent: "text-violet-600" },
+const CATEGORY_META: Record<
+  string,
+  {
+    icon: React.FC<any>;
+    gradient: string;
+    bg: string;
+    label: string;
+    accent: string;
+    softBorder: string;
+  }
+> = {
+  GOLD: {
+    icon: Sparkles,
+    gradient: "from-amber-400 to-yellow-500",
+    bg: "from-amber-50 to-yellow-50",
+    label: "Gold",
+    accent: "text-amber-600",
+    softBorder: "border-amber-200/60",
+  },
+  SILVER: {
+    icon: Gem,
+    gradient: "from-slate-400 to-gray-500",
+    bg: "from-slate-50 to-gray-100",
+    label: "Silver",
+    accent: "text-slate-600",
+    softBorder: "border-slate-200/60",
+  },
+  DIAMOND: {
+    icon: Diamond,
+    gradient: "from-cyan-400 to-blue-500",
+    bg: "from-cyan-50 to-blue-50",
+    label: "Diamond",
+    accent: "text-cyan-600",
+    softBorder: "border-cyan-200/60",
+  },
+  PLATINUM: {
+    icon: Box,
+    gradient: "from-violet-400 to-purple-500",
+    bg: "from-violet-50 to-purple-50",
+    label: "Platinum",
+    accent: "text-violet-600",
+    softBorder: "border-violet-200/60",
+  },
 };
 
 // ─── Product Card ─────────────────────────────────────────────────────────────
 
 const ProductCard = ({
-  product, index, onDelete,
-}: { product: Product; index: number; onDelete: (id: string) => void }) => {
+  product,
+  index,
+  onDelete,
+}: {
+  product: Product;
+  index: number;
+  onDelete: (id: string) => void;
+}) => {
   const meta = CATEGORY_META[product.category];
   const Icon = meta.icon;
 
   return (
     <motion.div
+      layout
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ delay: index * 0.04, duration: 0.35 }}
-      whileHover={{ y: -4, transition: { duration: 0.2 } }}
-      className="group relative bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-shadow duration-300 overflow-hidden"
+      exit={{ opacity: 0, scale: 0.96 }}
+      transition={{ delay: index * 0.04, duration: 0.3 }}
+      whileHover={{ y: -4 }}
+      className="group relative h-full rounded-2xl border border-white/60 bg-white/90 shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-xl"
     >
-      {/* Top color bar */}
-      <div className={`h-1.5 w-full bg-gradient-to-r ${meta.gradient}`} />
+      <div className={`h-1.5 w-full rounded-t-2xl bg-gradient-to-r ${meta.gradient}`} />
 
-      <div className="p-5">
-        <div className="flex items-start justify-between mb-4">
-          <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${meta.gradient} flex items-center justify-center shadow-md`}>
+      <div className="flex h-[calc(100%-6px)] flex-col p-4 sm:p-5">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${meta.gradient} shadow-md`}
+          >
             <Icon size={20} className="text-white" />
           </div>
+
           <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.94 }}
             onClick={() => onDelete(product._id!)}
-            className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50"
+            className="rounded-lg p-1.5 text-gray-300 transition-all hover:bg-red-50 hover:text-red-500 sm:opacity-0 sm:group-hover:opacity-100"
           >
             <Trash2 size={15} />
           </motion.button>
         </div>
 
-        <h3 className="font-bold text-gray-900 text-base mb-1 truncate">{product.name}</h3>
-        <p className="text-sm text-gray-500 mb-4">{product.type}</p>
+        <div className="min-w-0 flex-1">
+          <h3 className="mb-1 truncate text-base font-bold text-gray-900 sm:text-lg">
+            {product.name}
+          </h3>
+          <p className="mb-4 line-clamp-1 text-sm text-gray-500">{product.type}</p>
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full bg-gradient-to-r ${meta.bg} ${meta.accent} border border-current/10`}>
-              {meta.label}
-            </span>
-            {product.karat && (
-              <span className="text-xs font-mono font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
-                {product.karat}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span
+                className={`inline-flex max-w-full items-center rounded-full border border-current/10 bg-gradient-to-r px-2.5 py-1 text-xs font-semibold ${meta.bg} ${meta.accent}`}
+              >
+                {meta.label}
               </span>
+
+              {product.karat && (
+                <span className="rounded-md bg-gray-100 px-2 py-0.5 text-xs font-bold text-gray-500">
+                  {product.karat}
+                </span>
+              )}
+            </div>
+
+            {product.hsnNumber && (
+              <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                <Hash size={11} />
+                <span>HSN {product.hsnNumber}</span>
+              </div>
             )}
           </div>
-          {product.hsnNumber && (
-            <div className="flex items-center gap-1.5 text-xs text-gray-400">
-              <Hash size={11} />
-              <span>HSN {product.hsnNumber}</span>
-            </div>
-          )}
         </div>
       </div>
     </motion.div>
   );
 };
 
-// ─── Add Product Form (slide-over panel) ─────────────────────────────────────
+// ─── Add Product Form ─────────────────────────────────────────────────────────
 
 const AddProductPanel = ({
-  open, onClose,
-}: { open: boolean; onClose: () => void }) => {
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) => {
   const createProduct = useCreateProduct();
 
   const [form, setForm] = useState({
@@ -111,33 +193,50 @@ const AddProductPanel = ({
     category: "GOLD" as Product["category"],
     karat: "22K" as Product["karat"],
   });
+
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const set = (field: string, value: string) => {
-    setForm(p => ({ ...p, [field]: value }));
-    setErrors(p => ({ ...p, [field]: "" }));
+    setForm((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
   const validate = () => {
     const e: Record<string, string> = {};
+
     if (!form.name.trim()) e.name = "Product name is required";
     if (!form.type && !form.customType.trim()) e.type = "Product type is required";
+    if (form.type === "Other" && !form.customType.trim()) {
+      e.type = "Custom product type is required";
+    }
     if (form.category === "GOLD" && !form.karat) e.karat = "Karat is required for gold";
+
     setErrors(e);
-    return !Object.keys(e).length;
+    return Object.keys(e).length === 0;
   };
 
   const handleSubmit = async () => {
     if (!validate()) return;
-    const productType = form.type === "Other" ? form.customType.trim() : (form.type || form.customType.trim());
+
+    const productType =
+      form.type === "Other"
+        ? form.customType.trim()
+        : form.type || form.customType.trim();
+
     await createProduct.mutateAsync({
       name: form.name.trim(),
       type: productType,
       category: form.category,
       karat: form.category === "GOLD" ? form.karat : undefined,
     });
-    // reset
-    setForm({ name: "", type: "", customType: "", category: "GOLD", karat: "22K" });
+
+    setForm({
+      name: "",
+      type: "",
+      customType: "",
+      category: "GOLD",
+      karat: "22K",
+    });
     setErrors({});
     onClose();
   };
@@ -148,68 +247,84 @@ const AddProductPanel = ({
     <AnimatePresence>
       {open && (
         <>
-          {/* Backdrop */}
           <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
           />
-          {/* Panel */}
+
           <motion.div
-            initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 28, stiffness: 280 }}
-            className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl z-50 flex flex-col"
+            className="fixed right-0 top-0 z-50 flex h-full w-full flex-col bg-white shadow-2xl sm:max-w-md"
           >
-            {/* Header */}
-            <div className={`bg-gradient-to-r ${meta.gradient} p-6 text-white`}>
-              <div className="flex items-center justify-between mb-1">
-                <h2 className="text-xl font-bold">Add Product</h2>
+            <div className={`bg-gradient-to-r ${meta.gradient} p-5 text-white sm:p-6`}>
+              <div className="mb-1 flex items-center justify-between gap-3">
+                <h2 className="text-lg font-bold sm:text-xl">Add Product</h2>
                 <motion.button
-                  whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}
+                  whileHover={{ scale: 1.08, rotate: 90 }}
+                  whileTap={{ scale: 0.94 }}
                   onClick={onClose}
-                  className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+                  className="rounded-lg bg-white/20 p-1.5 transition-colors hover:bg-white/30"
                 >
                   <X size={18} />
                 </motion.button>
               </div>
-              <p className="text-white/80 text-sm">
+              <p className="text-sm text-white/80">
                 Add a new jewellery product to your catalog
               </p>
             </div>
 
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-
-              {/* Category selector */}
+            <div className="flex-1 space-y-6 overflow-y-auto p-4 sm:p-6">
               <div>
-                <label className="text-sm font-semibold text-gray-700 mb-3 block">Category</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {CATEGORIES.map(cat => {
+                <label className="mb-3 block text-sm font-semibold text-gray-700">
+                  Category
+                </label>
+
+                <div className="grid grid-cols-1 gap-3 xs:grid-cols-2 sm:grid-cols-2">
+                  {CATEGORIES.map((cat) => {
                     const m = CATEGORY_META[cat];
                     const CatIcon = m.icon;
                     const active = form.category === cat;
+
                     return (
                       <motion.button
                         key={cat}
-                        whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                        type="button"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => set("category", cat)}
-                        className={`relative flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all text-left
-                          ${active
-                            ? `border-transparent bg-gradient-to-r ${m.bg} shadow-md`
-                            : "border-gray-200 hover:border-gray-300 bg-white"
-                          }`}
+                        className={`relative flex items-center gap-3 rounded-xl border-2 p-3.5 text-left transition-all ${
+                          active
+                            ? `bg-gradient-to-r ${m.bg} shadow-md border-transparent`
+                            : "border-gray-200 bg-white hover:border-gray-300"
+                        }`}
                       >
-                        <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${m.gradient} flex items-center justify-center flex-shrink-0`}>
+                        <div
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${m.gradient}`}
+                        >
                           <CatIcon size={15} className="text-white" />
                         </div>
-                        <div>
-                          <p className={`text-sm font-bold ${active ? m.accent : "text-gray-700"}`}>{m.label}</p>
+
+                        <div className="min-w-0">
+                          <p
+                            className={`text-sm font-bold ${
+                              active ? m.accent : "text-gray-700"
+                            }`}
+                          >
+                            {m.label}
+                          </p>
                           <p className="text-xs text-gray-400">HSN {HSN_MAP[cat]}</p>
                         </div>
+
                         {active && (
                           <motion.div
                             layoutId="cat-check"
-                            className={`absolute top-2 right-2 w-2 h-2 rounded-full bg-gradient-to-br ${m.gradient}`}
+                            className={`absolute right-2 top-2 h-2 w-2 rounded-full bg-gradient-to-br ${m.gradient}`}
                           />
                         )}
                       </motion.button>
@@ -218,65 +333,78 @@ const AddProductPanel = ({
                 </div>
               </div>
 
-              {/* Product name */}
               <div>
-                <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                <label className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-gray-700">
                   <Tag size={14} /> Product Name <span className="text-red-400">*</span>
                 </label>
+
                 <input
                   value={form.name}
-                  onChange={e => set("name", e.target.value)}
+                  onChange={(e) => set("name", e.target.value)}
                   placeholder="e.g. Ladies Diamond Solitaire Ring"
-                  className={`w-full px-4 py-3 rounded-xl border-2 outline-none font-medium text-sm transition-all
-                    ${errors.name
+                  className={`w-full rounded-xl border-2 px-4 py-3 text-sm font-medium outline-none transition-all ${
+                    errors.name
                       ? "border-red-300 bg-red-50/50"
-                      : "border-gray-200 hover:border-gray-300 focus:border-blue-400 focus:bg-white bg-gray-50/80"
-                    }`}
+                      : "border-gray-200 bg-gray-50/80 hover:border-gray-300 focus:border-blue-400 focus:bg-white"
+                  }`}
                 />
+
                 {errors.name && (
-                  <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1">
-                    <AlertTriangle size={12} />{errors.name}
+                  <p className="mt-1.5 flex items-center gap-1 text-xs text-red-500">
+                    <AlertTriangle size={12} />
+                    {errors.name}
                   </p>
                 )}
               </div>
 
-              {/* Product type */}
               <div>
-                <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                <label className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-gray-700">
                   <Package size={14} /> Type <span className="text-red-400">*</span>
                 </label>
+
                 <div className="relative">
                   <select
                     value={form.type}
-                    onChange={e => set("type", e.target.value)}
-                    className={`w-full px-4 py-3 rounded-xl border-2 outline-none font-medium text-sm appearance-none cursor-pointer transition-all
-                      ${errors.type
+                    onChange={(e) => set("type", e.target.value)}
+                    className={`w-full appearance-none rounded-xl border-2 px-4 py-3 text-sm font-medium outline-none transition-all ${
+                      errors.type
                         ? "border-red-300 bg-red-50/50"
-                        : "border-gray-200 hover:border-gray-300 focus:border-blue-400 bg-gray-50/80"
-                      }`}
+                        : "border-gray-200 bg-gray-50/80 hover:border-gray-300 focus:border-blue-400"
+                    }`}
                   >
                     <option value="">Select type…</option>
-                    {PRODUCT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                    {PRODUCT_TYPES.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
                   </select>
-                  <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+
+                  <ChevronDown
+                    size={16}
+                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  />
                 </div>
+
                 {form.type === "Other" && (
                   <motion.input
-                    initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
                     value={form.customType}
-                    onChange={e => set("customType", e.target.value)}
+                    onChange={(e) => set("customType", e.target.value)}
                     placeholder="Enter custom type…"
-                    className="mt-2 w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-400 outline-none text-sm bg-gray-50/80 font-medium"
+                    className="mt-2 w-full rounded-xl border-2 border-gray-200 bg-gray-50/80 px-4 py-3 text-sm font-medium outline-none focus:border-blue-400"
                   />
                 )}
+
                 {errors.type && (
-                  <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1">
-                    <AlertTriangle size={12} />{errors.type}
+                  <p className="mt-1.5 flex items-center gap-1 text-xs text-red-500">
+                    <AlertTriangle size={12} />
+                    {errors.type}
                   </p>
                 )}
               </div>
 
-              {/* Karat — only for GOLD */}
               <AnimatePresence>
                 {form.category === "GOLD" && (
                   <motion.div
@@ -286,62 +414,73 @@ const AddProductPanel = ({
                     transition={{ duration: 0.25 }}
                     className="overflow-hidden"
                   >
-                    <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                    <label className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-gray-700">
                       <Sparkles size={14} /> Karat <span className="text-red-400">*</span>
                     </label>
-                    <div className="grid grid-cols-4 gap-2">
-                      {KARATS.map(k => (
+
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {KARATS.map((k) => (
                         <motion.button
                           key={k}
-                          whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                          type="button"
+                          whileHover={{ scale: 1.04 }}
+                          whileTap={{ scale: 0.96 }}
                           onClick={() => set("karat", k)}
-                          className={`py-2.5 rounded-xl text-sm font-bold border-2 transition-all
-                            ${form.karat === k
+                          className={`rounded-xl border-2 py-2.5 text-sm font-bold transition-all ${
+                            form.karat === k
                               ? "border-amber-400 bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 shadow-sm"
                               : "border-gray-200 text-gray-500 hover:border-gray-300"
-                            }`}
+                          }`}
                         >
                           {k}
                         </motion.button>
                       ))}
                     </div>
+
                     {errors.karat && (
-                      <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1">
-                        <AlertTriangle size={12} />{errors.karat}
+                      <p className="mt-1.5 flex items-center gap-1 text-xs text-red-500">
+                        <AlertTriangle size={12} />
+                        {errors.karat}
                       </p>
                     )}
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              {/* HSN preview */}
-              <div className={`rounded-xl p-4 bg-gradient-to-r ${meta.bg} border border-current/10`}>
-                <p className="text-xs font-semibold text-gray-500 mb-1">Auto-assigned HSN Code</p>
-                <p className={`text-2xl font-bold font-mono ${meta.accent}`}>{HSN_MAP[form.category]}</p>
-                <p className="text-xs text-gray-400 mt-0.5">Set automatically based on category</p>
+              <div
+                className={`rounded-xl border ${meta.softBorder} bg-gradient-to-r ${meta.bg} p-4`}
+              >
+                <p className="mb-1 text-xs font-semibold text-gray-500">
+                  Auto-assigned HSN Code
+                </p>
+                <p className={`font-mono text-2xl font-bold ${meta.accent}`}>
+                  {HSN_MAP[form.category]}
+                </p>
+                <p className="mt-0.5 text-xs text-gray-400">
+                  Set automatically based on category
+                </p>
               </div>
 
-              {/* Server error */}
               {createProduct.error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm flex items-center gap-2">
+                <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
                   <AlertTriangle size={14} />
-                  {(createProduct.error as any)?.response?.data?.message || "Failed to add product"}
+                  {(createProduct.error as any)?.response?.data?.message ||
+                    "Failed to add product"}
                 </div>
               )}
             </div>
 
-            {/* Footer */}
-            <div className="p-6 border-t border-gray-100">
+            <div className="border-t border-gray-100 p-4 sm:p-6">
               <motion.button
-                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
                 onClick={handleSubmit}
                 disabled={createProduct.isPending}
-                className={`w-full py-4 rounded-xl font-bold text-white bg-gradient-to-r ${meta.gradient}
-                  shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-60 flex items-center justify-center gap-2`}
+                className={`flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r ${meta.gradient} py-4 font-bold text-white shadow-lg transition-all duration-300 hover:shadow-xl disabled:opacity-60`}
               >
                 {createProduct.isPending ? (
                   <>
-                    <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
                     Adding Product…
                   </>
                 ) : (
@@ -359,32 +498,57 @@ const AddProductPanel = ({
   );
 };
 
-// ─── Delete Confirm Dialog ────────────────────────────────────────────────────
+// ─── Delete Dialog ────────────────────────────────────────────────────────────
 
 const DeleteDialog = ({
-  product, onConfirm, onCancel, isLoading,
-}: { product: Product | null; onConfirm: () => void; onCancel: () => void; isLoading: boolean }) => (
+  product,
+  onConfirm,
+  onCancel,
+  isLoading,
+}: {
+  product: Product | null;
+  onConfirm: () => void;
+  onCancel: () => void;
+  isLoading: boolean;
+}) => (
   <AnimatePresence>
     {product && (
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
-          className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6"
+          initial={{ opacity: 0, scale: 0.92 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.92 }}
+          className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl sm:p-6"
         >
-          <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-100">
             <Trash2 size={26} className="text-red-500" />
           </div>
-          <h3 className="text-lg font-bold text-gray-900 text-center mb-1">Remove Product?</h3>
-          <p className="text-gray-500 text-sm text-center mb-6">
-            <span className="font-semibold text-gray-800">{product.name}</span> will be permanently deleted.
+
+          <h3 className="mb-1 text-center text-lg font-bold text-gray-900">
+            Remove Product?
+          </h3>
+
+          <p className="mb-6 text-center text-sm text-gray-500">
+            <span className="font-semibold text-gray-800">{product.name}</span> will
+            be permanently deleted.
           </p>
-          <div className="flex gap-3">
-            <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 text-sm">
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              onClick={onCancel}
+              className="flex-1 rounded-xl bg-gray-100 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-200"
+            >
               Cancel
             </button>
-            <button onClick={onConfirm} disabled={isLoading}
-              className="flex-1 py-2.5 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600 text-sm disabled:opacity-60 flex items-center justify-center gap-2">
-              {isLoading ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+
+            <button
+              onClick={onConfirm}
+              disabled={isLoading}
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-500 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-600 disabled:opacity-60"
+            >
+              {isLoading ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              ) : null}
               Delete
             </button>
           </div>
@@ -398,29 +562,35 @@ const DeleteDialog = ({
 
 const StatsBar = ({ products }: { products: Product[] }) => {
   const counts = CATEGORIES.reduce((acc, c) => {
-    acc[c] = products.filter(p => p.category === c).length;
+    acc[c] = products.filter((p) => p.category === c).length;
     return acc;
   }, {} as Record<string, number>);
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {CATEGORIES.map((cat, i) => {
         const meta = CATEGORY_META[cat];
         const Icon = meta.icon;
+
         return (
           <motion.div
             key={cat}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.07 }}
-            className={`bg-gradient-to-br ${meta.bg} rounded-2xl p-4 border border-white/60 shadow-sm`}
+            transition={{ delay: i * 0.06 }}
+            className={`rounded-2xl border ${meta.softBorder} bg-gradient-to-br ${meta.bg} p-4 shadow-sm`}
           >
-            <div className="flex items-center justify-between mb-3">
-              <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${meta.gradient} flex items-center justify-center shadow`}>
+            <div className="mb-3 flex items-center justify-between">
+              <div
+                className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${meta.gradient} shadow`}
+              >
                 <Icon size={16} className="text-white" />
               </div>
-              <span className={`text-2xl font-black ${meta.accent}`}>{counts[cat]}</span>
+              <span className={`text-2xl font-black ${meta.accent}`}>
+                {counts[cat]}
+              </span>
             </div>
+
             <p className="text-sm font-semibold text-gray-600">{meta.label}</p>
           </motion.div>
         );
@@ -440,14 +610,21 @@ const ProductsPage = () => {
   const [activeCategory, setActiveCategory] = useState<string>("ALL");
   const [toDelete, setToDelete] = useState<Product | null>(null);
 
-  const filtered = products.filter(p => {
-    const matchCat = activeCategory === "ALL" || p.category === activeCategory;
-    const matchSearch =
-      !search ||
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.type.toLowerCase().includes(search.toLowerCase());
-    return matchCat && matchSearch;
-  });
+  const filtered = useMemo(() => {
+    return products.filter((p) => {
+      const matchCat = activeCategory === "ALL" || p.category === activeCategory;
+      const q = search.trim().toLowerCase();
+
+      const matchSearch =
+        !q ||
+        p.name.toLowerCase().includes(q) ||
+        p.type.toLowerCase().includes(q) ||
+        p.category.toLowerCase().includes(q) ||
+        (p.karat?.toLowerCase().includes(q) ?? false);
+
+      return matchCat && matchSearch;
+    });
+  }, [products, activeCategory, search]);
 
   const handleDelete = async () => {
     if (!toDelete?._id) return;
@@ -456,72 +633,74 @@ const ProductsPage = () => {
   };
 
   return (
-    <div className="min-h-screen p-4 sm:p-6 lg:p-8 relative overflow-hidden">
-      {/* Ambient blobs matching app theme */}
+    <div className="relative min-h-screen w-full overflow-x-hidden">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-32 -right-32 w-96 h-96 bg-blue-400/8 rounded-full blur-3xl" />
-        <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-purple-400/8 rounded-full blur-3xl" />
+        <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-blue-400/10 blur-3xl" />
+        <div className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-purple-400/10 blur-3xl" />
       </div>
 
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 max-w-7xl mx-auto space-y-8"
+        className="relative z-10 mx-auto w-full max-w-7xl space-y-6 px-4 py-4 sm:space-y-8 sm:px-6 sm:py-6 lg:px-8"
       >
-        {/* Page header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-black text-gray-900 tracking-tight">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-black tracking-tight text-gray-900 sm:text-3xl">
               Product Catalog
             </h1>
-            <p className="text-gray-500 mt-1">
-              {products.length} {products.length === 1 ? "product" : "products"} in your catalog
+            <p className="mt-1 text-sm text-gray-500 sm:text-base">
+              {products.length} {products.length === 1 ? "product" : "products"} in
+              your catalog
             </p>
           </div>
+
           <motion.button
-            whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => setPanelOpen(true)}
-            className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-purple-600
-              text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 self-start sm:self-auto"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-3 font-bold text-white shadow-lg transition-all duration-300 hover:shadow-xl sm:w-auto"
           >
             <Plus size={19} />
             Add Product
           </motion.button>
         </div>
 
-        {/* Stats */}
         <StatsBar products={products} />
 
-        {/* Filters */}
-        <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-white/30 shadow-lg p-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            {/* Search */}
-            <div className="relative flex-1">
-              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+        <div className="rounded-2xl border border-white/40 bg-white/70 p-4 shadow-lg backdrop-blur-xl">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+            <div className="relative w-full flex-1">
+              <Search
+                size={16}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+              />
               <input
                 value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Search by name or type…"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-blue-400 outline-none text-sm font-medium bg-gray-50/80 focus:bg-white transition-all"
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name, type, category or karat…"
+                className="w-full rounded-xl border-2 border-gray-200 bg-gray-50/80 py-2.5 pl-10 pr-4 text-sm font-medium outline-none transition-all focus:border-blue-400 focus:bg-white"
               />
             </div>
-            {/* Category tabs */}
-            <div className="flex gap-2 overflow-x-auto pb-0.5">
-              {["ALL", ...CATEGORIES].map(cat => {
+
+            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:mx-0 lg:px-0">
+              {["ALL", ...CATEGORIES].map((cat) => {
                 const meta = cat !== "ALL" ? CATEGORY_META[cat] : null;
                 const active = activeCategory === cat;
+
                 return (
                   <motion.button
                     key={cat}
-                    whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
                     onClick={() => setActiveCategory(cat)}
-                    className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all
-                      ${active
+                    className={`flex-shrink-0 rounded-xl px-4 py-2 text-sm font-bold transition-all ${
+                      active
                         ? meta
                           ? `bg-gradient-to-r ${meta.gradient} text-white shadow-md`
                           : "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
                         : "text-gray-500 hover:bg-gray-100"
-                      }`}
+                    }`}
                   >
                     {cat === "ALL" ? "All" : CATEGORY_META[cat].label}
                   </motion.button>
@@ -531,54 +710,66 @@ const ProductsPage = () => {
           </div>
         </div>
 
-        {/* Grid */}
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {[...Array(8)].map((_, i) => (
-              <div key={i} className="bg-white rounded-2xl p-5 animate-pulse">
-                <div className="h-1.5 bg-gray-200 rounded-full mb-4" />
-                <div className="w-11 h-11 bg-gray-200 rounded-xl mb-4" />
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
-                <div className="h-3 bg-gray-100 rounded w-1/2" />
+              <div
+                key={i}
+                className="rounded-2xl bg-white p-5 shadow-sm animate-pulse"
+              >
+                <div className="mb-4 h-1.5 rounded-full bg-gray-200" />
+                <div className="mb-4 h-11 w-11 rounded-xl bg-gray-200" />
+                <div className="mb-2 h-4 w-3/4 rounded bg-gray-200" />
+                <div className="h-3 w-1/2 rounded bg-gray-100" />
               </div>
             ))}
           </div>
         ) : error ? (
-          <div className="text-center py-20">
-            <AlertTriangle size={48} className="mx-auto text-red-400 mb-4" />
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Failed to load products</h3>
-            <p className="text-gray-500 text-sm">Check your connection and try again.</p>
+          <div className="py-20 text-center">
+            <AlertTriangle size={48} className="mx-auto mb-4 text-red-400" />
+            <h3 className="mb-2 text-xl font-bold text-gray-800">
+              Failed to load products
+            </h3>
+            <p className="text-sm text-gray-500">
+              Check your connection and try again.
+            </p>
           </div>
         ) : filtered.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="text-center py-24"
-          >
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 rounded-3xl flex items-center justify-center mx-auto mb-5">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-20 text-center sm:py-24">
+            <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-blue-100 to-purple-100">
               <Package size={36} className="text-blue-400" />
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">
-              {search || activeCategory !== "ALL" ? "No matching products" : "No products yet"}
+
+            <h3 className="mb-2 text-xl font-bold text-gray-800">
+              {search || activeCategory !== "ALL"
+                ? "No matching products"
+                : "No products yet"}
             </h3>
-            <p className="text-gray-500 text-sm mb-6">
+
+            <p className="mb-6 text-sm text-gray-500">
               {search || activeCategory !== "ALL"
                 ? "Try adjusting your search or filter."
                 : "Add your first product to start building your catalog."}
             </p>
+
             {!search && activeCategory === "ALL" && (
               <motion.button
-                whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => setPanelOpen(true)}
-                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl shadow-lg"
+                className="rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 font-bold text-white shadow-lg"
               >
-                <span className="flex items-center gap-2"><Plus size={18} /> Add First Product</span>
+                <span className="flex items-center gap-2">
+                  <Plus size={18} />
+                  Add First Product
+                </span>
               </motion.button>
             )}
           </motion.div>
         ) : (
           <motion.div
             layout
-            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5"
+            className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
           >
             <AnimatePresence>
               {filtered.map((p, i) => (
@@ -586,7 +777,9 @@ const ProductsPage = () => {
                   key={p._id}
                   product={p}
                   index={i}
-                  onDelete={(id) => setToDelete(products.find(x => x._id === id) || null)}
+                  onDelete={(id) =>
+                    setToDelete(products.find((x) => x._id === id) || null)
+                  }
                 />
               ))}
             </AnimatePresence>

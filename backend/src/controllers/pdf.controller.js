@@ -87,53 +87,71 @@ export const createInvoice = async (req, res) => {
 };
 
 // Section generators
-const generateHeader = (doc, company, invoice) => {
-  const IMAGE_WIDTH = 150;
+const generateHeader = (doc, company) => {
   const PAGE_WIDTH = doc.page.width;
   const MARGIN = 10;
-  IMAGE_HEIGHT = doc.y;
-  doc
-    .fontSize(10)
-    .font("bold")
-    .text(`GSTIN: `, { align: "left", continued: true })
-    .font("normal")
-    .text(`${company.gstin}`)
-    .font("bold")
-    .text(`CUSTOMER COPY`, doc.x, IMAGE_HEIGHT, {
-      align: "right",
-      underline: true,
-    })
-    .font("normal")
-    .text(`${company.phone}`, doc.x, doc.y + 2, { align: "right" })
-    .font("bold")
-    .text(`HM.No.: `, doc.x, doc.y - 10, { align: "left", continued: true })
-    .font("normal")
-    .text(`${company.hallMarkNumber || ""}`)
-    .moveDown();
 
-  //bis and brand logo
+  const topY = doc.y;
+
+  // Left side (GST + HM)
   doc
-    .image(path.join(IMAGE_PATH, "brand.png"), MARGIN, IMAGE_HEIGHT, {
-      width: 130,
-      align: "left",
-    })
-    .image(
-      path.join(IMAGE_PATH, "hallmark.png"),
-      PAGE_WIDTH - IMAGE_WIDTH - MARGIN,
-      IMAGE_HEIGHT,
-      { width: 130, align: "right" }
+    .font("bold")
+    .fontSize(9)
+    .text(`GSTIN: `, MARGIN, topY, { continued: true })
+    .font("normal")
+    .text(company.gstin || "");
+
+  doc
+    .font("bold")
+    .text(`HM No: `, MARGIN, doc.y, { continued: true })
+    .font("normal")
+    .text(company.hallMarkNumber || "");
+
+  // Right side (copy + phone)
+  doc
+    .font("bold")
+    .text("CUSTOMER COPY", PAGE_WIDTH - 150, topY, {
+      width: 140,
+      align: "right",
+    });
+
+  doc
+    .font("normal")
+    .text(
+      Array.isArray(company.phone) ? company.phone.map((p)=>(p)) : company.phone,
+      PAGE_WIDTH - 150,
+      doc.y,
+      { width: 140, align: "right" }
     );
 
+  // LOGO CENTERED (IMPORTANT FIX)
+  const logoPath = path.join(IMAGE_PATH, "brand.png");
+  if (fs.existsSync(logoPath)) {
+    doc.image(logoPath, PAGE_WIDTH / 2 - 40, topY, { width: 80 });
+  }
+
+  doc.moveDown(2);
+
+  // Company Name (Premium font)
   doc
-    .fontSize(25)
-    .font("bold")
-    .text(company.name.toUpperCase(), { align: "center", underline: true })
+    .font("heading")
+    .fontSize(22)
+    .text(company.name.toUpperCase(), { align: "center" });
+
+  doc
     .font("normal")
-    .fontSize(12)
-    .text(company.address, { align: "center" })
-    .fontSize(10)
-    .text(`Email: ${company.email}`, { align: "center" })
-    .moveDown(2);
+    .fontSize(11)
+    .text(company.address?.street || "", { align: "center" })
+    .text(`Email: ${company.email}`, { align: "center" });
+
+  // Divider
+  doc
+    .moveDown(1)
+    .moveTo(MARGIN, doc.y)
+    .lineTo(PAGE_WIDTH - MARGIN, doc.y)
+    .stroke();
+
+  doc.moveDown(1);
 };
 
 const generateCustomerInfo = (doc, customer, date) => {

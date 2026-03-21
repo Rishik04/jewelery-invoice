@@ -1,10 +1,10 @@
 import { useCompany } from "@/features/company/useCompany";
-import { useCreateInvoice } from "@/features/invoice/useInvoice";
+import { useCreateInvoice, usePrintInvoice } from "@/features/invoice/useInvoice";
 import { useProducts } from "@/features/product/useProduct";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft, Building2, Calculator, Calendar, Check, ChevronRight,
-  Coins, FileText, Hash, Home, MapPin, Phone, PlusCircle, Receipt,
+  Coins, FileText, Hash, Home, MapPin, Phone, PlusCircle, Printer, Receipt,
   Sparkles, Trash2, User,
 } from "lucide-react";
 import React, { useMemo, useState } from "react";
@@ -93,6 +93,7 @@ const EMPTY_ITEM = { type: "G", id: "", description: "", hsnCode: "7113", purity
 const ModernInvoiceForm = () => {
   const [step, setStep] = useState(1);
   const createInvoiceMutation = useCreateInvoice();
+  const printInvoiceMutation = usePrintInvoice();
   const { data: selectedCompany, isLoading, error } = useCompany();
   const navigate = useNavigate();
 
@@ -146,6 +147,25 @@ const ModernInvoiceForm = () => {
     };
     try {
       await createInvoiceMutation.mutateAsync(payload);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  const buildPayload = () => ({
+    ...formData,
+    items: formData.items.map(i => ({
+      ...i,
+      weight: Number(i.netWeight),
+      quantity: 1,
+      rate: Number(i.rate),
+      makingCharges: Number(i.makingCharges),
+      otherCharges: Number(i.otherCharges),
+    })),
+  });
+
+   const handlePrint = async () => {
+    try {
+      await printInvoiceMutation.mutateAsync(buildPayload());
     } catch (err) {
       console.error(err);
     }
@@ -346,12 +366,23 @@ const ModernInvoiceForm = () => {
                       <ArrowLeft size={18} /> Back
                     </motion.button>
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleSubmit}
-                      disabled={createInvoiceMutation.isPending}
-                      className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold rounded-xl shadow-lg disabled:opacity-50">
+                      disabled={createInvoiceMutation.isPending || printInvoiceMutation.isPending}
+                      className="flex items-center gap-2 px-7 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold rounded-xl shadow-lg disabled:opacity-50">
                       {createInvoiceMutation.isPending ? (
                         <><span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Generating...</>
                       ) : (
-                        <><Receipt size={20} /> Generate Invoice</>
+                        <><Receipt size={20} /> Download Invoice</>
+                      )}
+                    </motion.button>
+
+                    {/* Print (desktop) / Download (mobile) */}
+                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handlePrint}
+                      disabled={createInvoiceMutation.isPending || printInvoiceMutation.isPending}
+                      className="flex items-center gap-2 px-7 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl shadow-lg disabled:opacity-50">
+                      {printInvoiceMutation.isPending ? (
+                        <><span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Opening...</>
+                      ) : (
+                        <><Printer size={20} /> Print Invoice</>
                       )}
                     </motion.button>
                   </div>

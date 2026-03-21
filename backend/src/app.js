@@ -16,10 +16,13 @@ const app = express();
 
 app.use(express.json());
 
-app.use(cors({
-  origin: process.env.FE_URL,
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: process.env.FE_URL,
+    credentials: true,
+    exposedHeaders: ["Content-Disposition"],
+  }),
+);
 
 app.use(helmet());
 app.use(compression());
@@ -30,6 +33,5 @@ app.use("/api/company", companyRoutes);
 app.use("/api/invoice", invoiceRoutes);
 
 // app.use(errorMiddleware);
-
 
 export default app;

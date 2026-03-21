@@ -91,18 +91,18 @@ export const convertAmountToIndianWords = (amount) => {
     // Split into rupees and paise
     const parts = amount.toString().split(".");
     let rupees = parts[0];
-    let paise = parts.length > 1 ? parts[1].substring(0, 2) : "00";
+    // let paise = parts.length > 1 ? parts[1].substring(0, 2) : "00";
 
     // Pad paise with zero if needed
-    if (paise.length === 1) paise += "0";
+    // if (paise.length === 1) paise += "0";
 
     // Convert rupees part
     let words = "Rs " + convertToIndianWords(parseInt(rupees));
 
     // Add paise if not zero
-    if (paise !== "00") {
-      words += " and " + convertToIndianWords(parseInt(paise)) + " Paise";
-    }
+    // if (paise !== "00") {
+    //   words += " and " + convertToIndianWords(parseInt(paise)) + " Paise";
+    // }
 
     return words + " Only";
   } catch (error) {

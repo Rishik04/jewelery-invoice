@@ -1,15 +1,35 @@
 import fs from "fs";
 import path from "path";
 import PDFDocument from "pdfkit";
-import CompanyCacheModel from "../model/company.cache.model.js";
 import CompanyModel from "../model/companyModel.js";
 import { convertAmountToIndianWords } from "../utils/converision.js";
 
 const IMAGE_PATH = path.join(process.cwd(), "src", "public", "images");
+const CURRENCY = "₹";
 
 const DEFAULT_FONTS = {
-  Normal: path.join(process.cwd(), "src", "public", "fonts", "arial.ttf"),
-  Bold: path.join(process.cwd(), "src", "public", "fonts", "ARIALBD.ttf"),
+  Normal: path.join(process.cwd(), "src", "public", "fonts", "montserrat.ttf"),
+  Bold: path.join(
+    process.cwd(),
+    "src",
+    "public",
+    "fonts",
+    "montserrat.bold.ttf",
+  ),
+  Heading: path.join(
+    process.cwd(),
+    "src",
+    "public",
+    "fonts",
+    "PlayfairDisplay.ttf",
+  ),
+  SemiBold: path.join(
+    process.cwd(),
+    "src",
+    "public",
+    "fonts",
+    "montserrat.semibold.ttf",
+  ),
 };
 
 // ─── Header ─────────────────────────────────────────────────────────────────
@@ -27,34 +47,68 @@ const generateHeader = (doc, company) => {
     .font("normal")
     .text(`${company.gstin}`)
     .font("bold")
-    .text(`CUSTOMER COPY`, doc.x, IMAGE_HEIGHT, { align: "right", underline: true })
+    .text(`ORIGINAL FOR RECIPIENT`, doc.x, IMAGE_HEIGHT, {
+      align: "right",
+      underline: true,
+    })
     .font("normal")
-    .text(`${Array.isArray(company.phone) ? company.phone[0] : company.phone}`, doc.x, doc.y + 2, { align: "right" })
+    .text(
+      `${Array.isArray(company.phone) ? company.phone.join(" / ") : company.phone}`,
+      doc.x,
+      doc.y + 2,
+      { align: "right" },
+    )
     .font("bold")
     .text(`HM.No.: `, doc.x, doc.y - 10, { align: "left", continued: true })
     .font("normal")
     .text(`${company.hallMarkNumber || ""}`)
+    .font("semiBold")
+    .fontSize(12)
+    .text(`GST INVOICE`, doc.x, doc.y - 15, {
+      align: "center",
+      underline: true,
+    })
     .moveDown();
 
   // Brand & hallmark logos (skip gracefully if missing)
   const brandPath = path.join(IMAGE_PATH, "brand.png");
   const hallmarkPath = path.join(IMAGE_PATH, "hallmark.png");
-  if (fs.existsSync(brandPath)) {
-    doc.image(brandPath, MARGIN, IMAGE_HEIGHT, { width: 130, align: "left" });
-  }
+
+  // if (fs.existsSync(brandPath)) {
+  //   doc.image(brandPath, MARGIN, IMAGE_HEIGHT, { width: 130, align: "right" });
+  // }
   if (fs.existsSync(hallmarkPath)) {
-    doc.image(hallmarkPath, PAGE_WIDTH - IMAGE_WIDTH - MARGIN, IMAGE_HEIGHT, { width: 130, align: "right" });
+    doc.image(hallmarkPath, MARGIN, IMAGE_HEIGHT, {
+      width: 130,
+      align: "left",
+    });
   }
 
-  const addressStreet = company.address?.street ?? (typeof company.address === "string" ? company.address : "");
+  const getFullAddress = (address) => {
+    if (!address) return "";
+    // If it's an object
+    const parts = [
+      address.street,
+      address.city,
+      address.state,
+      address.pincode,
+    ];
+
+    return [
+      address.street,
+      `${address.city}, ${address.state} - ${address.pincode}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+  };
 
   doc
-    .fontSize(25)
-    .font("bold")
-    .text(company.name.toUpperCase(), { align: "center", underline: true })
+    .fontSize(24)
+    .font("heading")
+    .text(company.name.toUpperCase(), { align: "center" })
     .font("normal")
     .fontSize(12)
-    .text(addressStreet, { align: "center" })
+    .text(getFullAddress(company.address), { align: "center" })
     .fontSize(10)
     .text(`Email: ${company.email}`, { align: "center" })
     .moveDown(2);
@@ -79,22 +133,25 @@ const generateCustomerInfo = (doc, invoice, company) => {
     .text(`Code: ${company.address?.statecode || ""}`)
     .moveDown();
 
+  //consignie divider
   doc
     .moveTo(320, COLUMN_HEIGHT - 10)
-    .lineTo(320, doc.y - 2)
+    .lineWidth(0.5)
+    .lineTo(320, doc.y+1)
     .stroke();
 
   const infoY = COLUMN_HEIGHT;
   let date = invoice.createdAt;
 
-  // FIX: use actual invoiceNumber instead of hardcoded "123"
   doc
     .font("bold")
     .text("Bill No: ", 325, infoY, { continued: true })
     .font("normal")
     .text(invoice.invoiceNumber);
 
-  const displayDate = date ? new Date(date).toLocaleDateString("en-IN") : new Date().toLocaleDateString("en-IN");
+  const displayDate = date
+    ? new Date(date).toLocaleDateString("en-IN")
+    : new Date().toLocaleDateString("en-IN");
   doc
     .font("bold")
     .text("Date: ", 450, doc.y - 10, { continued: true })
@@ -110,6 +167,7 @@ const generateCustomerInfo = (doc, invoice, company) => {
 
   doc
     .moveTo(320, doc.y + 5)
+    .lineWidth(0.5)
     .lineTo(doc.page.width - 7, doc.y + 5)
     .stroke();
 
@@ -117,6 +175,7 @@ const generateCustomerInfo = (doc, invoice, company) => {
 
   doc
     .moveTo(320, doc.y + 2)
+    .lineWidth(0.5)
     .lineTo(doc.page.width - 7, doc.y + 2)
     .stroke();
 
@@ -127,7 +186,7 @@ const generateCustomerInfo = (doc, invoice, company) => {
     .text(`${invoice.customer.address || ""}`, 325, doc.y + 10)
     .text(`Ph # ${invoice.customer.phone || ""}`, 325, doc.y + 10);
 
-  doc.y = COLUMN_HEIGHT + 110;
+  doc.y = COLUMN_HEIGHT + 120;
 };
 
 // ─── Items Table ─────────────────────────────────────────────────────────────
@@ -137,26 +196,47 @@ const formatMoney = (value) => {
   return isNaN(num) ? "0.00" : num.toFixed(2);
 };
 
-const categories = {"GOLD": "G", "SILVER": "S", "DIAMOND": "D"};
+const formatMoneyDisplay = (value) => {
+  const num = Number(value);
+  return isNaN(num)
+    ? "0.00"
+    : num.toLocaleString("en-IN", { minimumFractionDigits: 2 });
+};
+
+const roundOff = (total) => {
+  const roundedTotal = Math.round(total);
+  const roundOffValue = +(roundedTotal - total).toFixed(2);
+  const diff = +(roundedTotal - total).toFixed(2);
+
+  return {
+    display: diff > 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2),
+    roundedTotal,
+    roundOff: roundOffValue,
+  };
+};
+
+const categories = { GOLD: "G", SILVER: "S", DIAMOND: "D" };
 
 const calculateGST = (value, gstPercentage) => (value * gstPercentage) / 100;
 
 const calculateTotal = (rows, columnIndex) =>
-  rows.reduce((sum, row) => sum + parseFloat(row[columnIndex] || 0), 0).toFixed(2);
+  rows
+    .reduce((sum, row) => sum + parseFloat(row[columnIndex] || 0), 0)
+    .toFixed(2);
 
 const generateItemsTable = (doc, invoice) => {
   const tableConfig = {
     headers: [
-      { text: "Type",           width: 30,  align: "center" },
-      { text: "Description",    width: 100, align: "center" },
-      { text: "HSN Code",       width: 40,  align: "center" },
-      { text: "Purity",         width: 40,  align: "center" },
-      { text: "Gross Wt",       width: 40,  align: "center" },
-      { text: "Rate",           width: 60,  align: "center" },
-      { text: "Value",          width: 60,  align: "center" },
-      { text: "Making Charges", width: 60,  align: "center" },
-      { text: "Other",          width: 50,  align: "center" },
-      { text: "Amount",         width: 80,  align: "center" },
+      { text: "Type", width: 30, align: "center" },
+      { text: "Description", width: 80, align: "center" },
+      { text: "HSN Code", width: 35, align: "center" },
+      { text: "Purity", width: 45, align: "center" },
+      { text: "Gross Wt", width: 40, align: "center" },
+      { text: "Rate", width: 60, align: "center" },
+      { text: "Value", width: 70, align: "center" },
+      { text: "Making Charges", width: 60, align: "center" },
+      { text: "Other", width: 40, align: "center" },
+      { text: "Amount", width: 100, align: "center" },
     ],
     columnSpacing: 2,
     rowHeight: 20,
@@ -165,9 +245,11 @@ const generateItemsTable = (doc, invoice) => {
   };
 
   tableConfig.rows = (invoice.items || []).map((item) => {
-    const totalRate = item.total
+    const totalRate = Number(item.total) || 0;
     const makingCharges = (totalRate * item.makingCharges) / 100;
-    const totalCharges =  parseFloat(totalRate + makingCharges + (item.otherCharges || 0)).toFixed(2);
+    const totalCharges = parseFloat(
+      totalRate + makingCharges + (item.otherCharges || 0),
+    ).toFixed(2);
 
     return [
       categories[item.category] || "",
@@ -193,32 +275,37 @@ const generateItemsTable = (doc, invoice) => {
 };
 
 const drawTableWithGrid = (doc, config) => {
-  const { headers, rows, margin, rowHeight, headerHeight, columnSpacing } = config;
+  const { headers, rows, margin, rowHeight, headerHeight, columnSpacing } =
+    config;
 
   config.totalWidth =
-    headers.reduce((sum, header) => sum + header.width + columnSpacing, 0) - columnSpacing;
+    headers.reduce((sum, header) => sum + header.width + columnSpacing, 0) -
+    columnSpacing;
 
   // Customer info box outline
   doc
-    .moveTo(margin.left, margin.top - 120)
-    .lineTo(margin.left + config.totalWidth, margin.top - 120)
+    .moveTo(margin.left, margin.top - 130)
+    .lineTo(margin.left + config.totalWidth, margin.top - 130)
     .lineTo(margin.left + config.totalWidth, margin.top)
     .lineTo(margin.left, margin.top)
-    .lineTo(margin.left, margin.top - 120)
+    .lineTo(margin.left, margin.top - 130)
+    .lineWidth(0.5)
     .stroke();
 
-  doc.rect(margin.left, margin.top, config.totalWidth, headerHeight).stroke();
+  doc
+    .rect(margin.left, margin.top, config.totalWidth, headerHeight)
+    .lineWidth(0.5)
+    .stroke(); // light header
 
   let x = margin.left;
   doc.font("bold");
 
   headers.forEach((header) => {
-    doc
-      .moveTo(x, margin.top)
-      .lineTo(x, margin.top + headerHeight + rows.length * rowHeight)
-      .stroke();
+    doc.font("semiBold").fontSize(9.5).moveTo(x, margin.top);
+    // .lineTo(x, margin.top + headerHeight + rows.length * rowHeight)
+    // .stroke();
 
-    doc.text(header.text, x + 2, margin.top + 5, {
+    doc.text(header.text.toUpperCase(), x + 2, margin.top + 5, {
       width: header.width - 4,
       align: header.align,
     });
@@ -228,7 +315,10 @@ const drawTableWithGrid = (doc, config) => {
 
   doc
     .moveTo(x - columnSpacing, margin.top)
-    .lineTo(x - columnSpacing, margin.top + headerHeight + rows.length * rowHeight)
+    .lineTo(
+      x - columnSpacing,
+      margin.top + headerHeight + rows.length * rowHeight,
+    )
     .stroke();
 
   doc.font("normal");
@@ -242,6 +332,11 @@ const drawTableWithGrid = (doc, config) => {
 
     x = margin.left;
     row.forEach((cell, colIndex) => {
+      if (colIndex >= 5) {
+        doc.font("semiBold");
+      } else {
+        doc.font("normal");
+      }
       doc.text(String(cell), x + 2, y + 5, {
         width: headers[colIndex].width - 4,
         align: headers[colIndex].align,
@@ -261,46 +356,167 @@ const drawTableWithGrid = (doc, config) => {
 
 const drawTotalsSection = (doc, config, totalAmount, totalWithGST) => {
   const { margin, totalWidth, rowHeight } = config;
-  let y = margin.top + config.headerHeight + config.rows.length * rowHeight + rowHeight;
+  let y =
+    margin.top +
+    config.headerHeight +
+    config.rows.length * rowHeight +
+    rowHeight;
 
-  doc.moveTo(margin.left, margin.top).lineTo(margin.left, y + 65).stroke();
-  doc.moveTo(margin.left + totalWidth, margin.top).lineTo(margin.left + totalWidth, y + 65).stroke();
+  doc
+    .moveTo(margin.left, margin.top)
+    .lineTo(margin.left, y + 105)
+    .stroke();
+  doc
+    .moveTo(margin.left + totalWidth, margin.top)
+    .lineTo(margin.left + totalWidth, y + 105)
+    .stroke();
 
   doc.font("bold");
 
   y -= 10;
   doc.text("Total", margin.left + 2, y, { align: "left" });
-  doc.text(calculateTotal(config.rows, 4), margin.left + 240, y, { align: "left" });
-  doc.text(calculateTotal(config.rows, 7), margin.left + 395, y, { align: "left" });
-  doc.text(formatMoney(totalAmount), margin.left + totalWidth - 62, y, { align: "right" });
+  doc.text(calculateTotal(config.rows, 4), margin.left + 220, y, {
+    align: "left",
+  });
+  doc.text(calculateTotal(config.rows, 7), margin.left + 395, y, {
+    align: "left",
+  });
+  doc.text(formatMoney(totalAmount), margin.left + totalWidth - 62, y, {
+    align: "right",
+  });
 
-  doc.moveTo(margin.left, y + 15).lineTo(margin.left + totalWidth, y + 15).stroke();
+  doc
+    .moveTo(margin.left, y + 15)
+    .lineTo(margin.left + totalWidth, y + 15)
+    .stroke();
 
   y += rowHeight;
   const gstAmount = calculateGST(totalAmount, 1.5);
 
-  doc.text("SGST: 1.50%", margin.left, y, { width: totalWidth - 90, align: "right" });
-  doc.text(formatMoney(gstAmount), margin.left + totalWidth - 62, y, { align: "right" });
+  doc.text("CGST: 1.50%", margin.left, y, {
+    width: totalWidth - 90,
+    align: "right",
+  });
+  doc.text(formatMoney(gstAmount), margin.left + totalWidth - 62, y, {
+    align: "right",
+  });
 
   y += rowHeight;
-  doc.text("CGST: 1.50%", margin.left, y, { width: totalWidth - 90, align: "right" });
+  doc.text("SGST: 1.50%", margin.left, y, {
+    width: totalWidth - 90,
+    align: "right",
+  });
 
   doc
     .moveTo(margin.left + totalWidth - 80, margin.top)
     .lineTo(margin.left + totalWidth - 80, y + 35)
     .stroke();
 
-  doc.text(formatMoney(gstAmount), margin.left + totalWidth - 62, y, { align: "right" });
+  doc.text(formatMoney(gstAmount), margin.left + totalWidth - 62, y, {
+    align: "right",
+  });
 
-  doc.moveTo(margin.left, y + 15).lineTo(margin.left + totalWidth, y + 15).stroke();
+  doc
+    .moveTo(margin.left, y + 15)
+    .lineTo(margin.left + totalWidth, y + 15)
+    .stroke();
 
   y += rowHeight;
-  doc.text("Total Amt. With Tax.", margin.left, y, { width: totalWidth - 90, align: "right" });
-  doc.text(formatMoney(totalWithGST), margin.left + totalWidth - 62, y, { align: "right" });
+  doc.text("Total Amt. With Tax.", margin.left, y, {
+    width: totalWidth - 90,
+    align: "right",
+  });
 
-  doc.fontSize(8).text(convertAmountToIndianWords(totalWithGST), margin.left + 2, y);
+  doc
+    .moveTo(margin.left + totalWidth - 80, margin.top)
+    .lineTo(margin.left + totalWidth - 80, y + 55)
+    .stroke();
 
-  doc.moveTo(margin.left, y + 15).lineTo(margin.left + totalWidth, y + 15).stroke();
+  doc.text(formatMoneyDisplay(formatMoney(totalWithGST)), margin.left + totalWidth - 62, y, {
+    align: "right",
+  });
+
+  doc
+    .moveTo(margin.left, y + 15)
+    .lineTo(margin.left + totalWidth, y + 15)
+    .stroke();
+
+  y += rowHeight;
+  doc.font("semiBold").text("Round Off", margin.left, y, {
+    width: totalWidth - 90,
+    align: "right",
+  });
+
+  doc.font("bold");
+  doc.text(
+    `${roundOff(totalWithGST).display}`,
+    margin.left + totalWidth - 62,
+    y,
+    {
+      align: "right",
+    },
+  );
+
+  doc
+    .moveTo(margin.left, y + 15)
+    .lineTo(margin.left + totalWidth, y + 15)
+    .stroke();
+
+  y += rowHeight;
+  //-----------------------------------------------------------------
+  // doc
+  // .fontSize(11)
+  // .font("bold")
+  // .text(
+  //   `${CURRENCY} ${formatMoneyDisplay(roundOff(totalWithGST).roundedTotal)}`,
+  //   margin.left,
+  //   y,
+  //   {
+  //     align: "right",
+  //   },
+  // );
+
+  // doc.fontSize(10).font("bold").text("Final Amount", margin.left, y, {
+  //   width: totalWidth - 90,
+  //   align: "right",
+  // });
+
+  doc
+    .fontSize(8)
+    .text(
+      "Amounts in words: " +
+        convertAmountToIndianWords(roundOff(totalWithGST).roundedTotal),
+      margin.left + 2,
+      y,
+    );
+
+  doc
+    .moveTo(margin.left, y + 15)
+    .lineTo(margin.left + totalWidth, y + 15)
+    .stroke();
+
+
+    y += rowHeight + 5;
+const finalAmount = roundOff(totalWithGST).roundedTotal;
+  // Draw box aligned to table
+doc
+  .rect(margin.left, y, totalWidth, 25)
+  .lineWidth(1)
+  .stroke();
+
+// Center text INSIDE box (no overflow)
+doc
+  .font("bold")
+  .fontSize(12)
+  .text(
+    `FINAL AMOUNT: ${CURRENCY} ${formatMoneyDisplay(finalAmount)}`,
+    margin.left,
+    y + 7,
+    {
+      width: totalWidth,
+      align: "center",
+    }
+  );
 };
 
 // ─── Footer ──────────────────────────────────────────────────────────────────
@@ -315,9 +531,8 @@ const generateFooter = (doc, company) => {
   });
 
   doc
-    .moveDown(2)
     .text(`FOR ${company.name.toUpperCase()}`, { align: "right" })
-    .moveDown(1)
+    .moveDown(10)
     .text("Authorized Signatory", { align: "right" });
 
   const logoPath = path.join(IMAGE_PATH, "logo.png");
@@ -339,7 +554,6 @@ const generateFooter = (doc, company) => {
 
     doc
       .moveTo(15, HEIGHT)
-      .moveDown(2)
       .fontSize(8)
       .text("Bank Details:", LEFT + 70, HEIGHT + 10, { underline: true })
       .text(`Bank Name: ${company.bank.bankName}`, LEFT + 10, HEIGHT + 22)
@@ -349,10 +563,15 @@ const generateFooter = (doc, company) => {
   }
 
   doc
-    .moveDown(2)
-    .fontSize(10)
-    .text('"MOST TRUSTED JEWELLERS"', { align: "center" })
-    .text("THANK YOU, VISIT AGAIN", { align: "center" });
+  .moveDown(2)
+  .font("heading")
+  .fontSize(10)
+  .text("Crafted with Trust • Delivered with Purity", { align: "center" })
+  .moveDown(0.3)
+  .font("normal")
+  .fontSize(9)
+  .text("Thank you for your purchase", { align: "center" })
+  .moveDown(1.5);
 };
 
 // ─── Public API ───────────────────────────────────────────────────────────────
@@ -384,13 +603,21 @@ export const createPDF = async (invoice) => {
   if (fs.existsSync(DEFAULT_FONTS.Normal)) {
     doc.registerFont("normal", DEFAULT_FONTS.Normal);
     doc.registerFont("bold", DEFAULT_FONTS.Bold);
+    doc.registerFont("heading", DEFAULT_FONTS.Heading);
+    doc.registerFont("semiBold", DEFAULT_FONTS.SemiBold);
   } else {
     doc.registerFont("normal", "Helvetica");
     doc.registerFont("bold", "Helvetica-Bold");
   }
 
   const fileName = `${invoice.invoiceNumber}.pdf`;
-  const filePath = path.join(process.cwd(), "src", "public", "invoices", fileName);
+  const filePath = path.join(
+    process.cwd(),
+    "src",
+    "public",
+    "invoices",
+    fileName,
+  );
 
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
 

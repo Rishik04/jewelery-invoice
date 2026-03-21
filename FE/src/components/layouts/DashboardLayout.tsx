@@ -20,7 +20,7 @@ const DashboardLayout = () => {
       >
         {/* Pass expanded to Header */}
         <Header expanded={expanded} />
-        <main className="flex-1 p-4 md:p-6 overflow-y-auto bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+        <main className="flex-1 md:p-6 overflow-y-auto bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
           <Outlet />
         </main>
       </div>
