@@ -3,6 +3,7 @@ import path from "path";
 import PDFDocument from "pdfkit";
 import CompanyModel from "../model/companyModel.js";
 import { convertAmountToIndianWords } from "../utils/converision.js";
+import { logger } from "../utils/logger.js";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const IMAGE_PATH = path.join(process.cwd(), "src", "public", "images");
@@ -318,7 +319,7 @@ const buildRows = (invoice, rate) =>
     const gst = calcGST(baseAmount, rate);
     const grossWt = Number(item.weight ?? 0).toFixed(3);
     const metalWt = Number(item.weight ?? 0).toFixed(3);
-    const goldRate = Number(item.rate ?? 0)
+    const goldRate = Number(item.rate*10) ?? 0
     // const rate = Number(item.rate ?? 0)
 
     return [
@@ -351,7 +352,7 @@ const generateItemsTable = (doc, invoice, company) => {
     { label: "Qty", w: 20, align: "center" },
     { label: "Gross\nWt (g)", w: 38, align: "center" },
     { label: "Net\nWt (g)", w: 38, align: "center" },
-    { label: "Rate\n(₹/g)", w: 40, align: "right" },
+    { label: "Rate\n(₹/10g)", w: 40, align: "right" },
     { label: "Making\nChgs (₹)", w: 44, align: "right" },
     { label: "CGST\n1.50%", w: 40, align: "right" },
     { label: "SGST\n1.50%", w: 40, align: "right" },
@@ -657,11 +658,11 @@ const drawTotalsSection = (
     .text(
       `Value in Words: ${convertAmountToIndianWords(rounded.rounded)}`,
       tableX,
-      sectionBottom + 4,
+      sectionBottom + 6,
       { width: tableW },
     );
 
-  doc.y = sectionBottom + 16;
+  doc.y = sectionBottom + 18;
   hline(doc, doc.y, tableX, tableX + tableW, 0.5, CLR.ruleHard);
   doc.y += 4;
 };
@@ -781,16 +782,16 @@ const generateFooter = (doc, company, invoice) => {
   }
 
   // ── Disclaimer (no gold rule above it — removed)
-  doc
-    .font("normal")
-    .fontSize(6.5)
-    .fillColor(CLR.light)
-    .text(
-      "This is a computer-generated invoice and does not require a physical signature.",
-      M,
-      FOOTER_TOP + FOOTER_H - 10,
-      { width: CONTENT_W, align: "center" },
-    );
+  // doc
+  //   .font("normal")
+  //   .fontSize(6.5)
+  //   .fillColor(CLR.light)
+  //   .text(
+  //     "This is a computer-generated invoice and does not require a physical signature.",
+  //     M,
+  //     FOOTER_TOP + FOOTER_H - 10,
+  //     { width: CONTENT_W, align: "center" },
+  //   );
 };
 
 // ─── 6. Outer border ─────────────────────────────────────────────────────────
@@ -806,6 +807,8 @@ const drawOuterBorder = (doc) =>
   );
 
 // ─── PUBLIC API ───────────────────────────────────────────────────────────────
+const INVOICE_DIR = path.join(process.cwd(), "src", "public", "invoices");
+
 export const createPDF = async (invoice, res = null) => {
   let company = invoice._company ?? null;
   if (!company) {
@@ -824,15 +827,19 @@ export const createPDF = async (invoice, res = null) => {
   const fileName = `${invoice.invoiceNumber}.pdf`;
   let filePath = null;
   let diskStream = null;
+  let fullPath = null;
 
   if (res) {
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `inline; filename="${fileName}"`);
     doc.pipe(res);
   } else {
-    filePath = path.join(process.cwd(), "src", "public", "invoices", fileName);
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    diskStream = fs.createWriteStream(filePath);
+    fullPath = path.join(INVOICE_DIR, fileName);
+    fullPath = fullPath
+    logger.info("File path for invoice " + fullPath)
+    filePath = `invoices/${fileName}`;
+    fs.mkdirSync(path.dirname(fullPath), { recursive: true });
+    diskStream = fs.createWriteStream(fullPath);
     doc.pipe(diskStream);
   }
 
@@ -840,7 +847,6 @@ export const createPDF = async (invoice, res = null) => {
     doc.y = M;
     generateHeader(doc, company);
     generateCustomerInfo(doc, invoice, company);
-    // rate band removed — call removed from here
     generateItemsTable(doc, invoice, company);
     generateFooter(doc, company, invoice);
     drawOuterBorder(doc);
@@ -853,7 +859,7 @@ export const createPDF = async (invoice, res = null) => {
       diskStream.on("finish", resolve);
       diskStream.on("error", reject);
     });
-    return { filePath, fileName };
+    return { fullPath, filePath, fileName };
   }
 
   return { fileName };

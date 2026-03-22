@@ -172,7 +172,7 @@ const ModernInvoiceForm = () => {
   const { subtotal, sgst, cgst, total } = useMemo(() => {
     const sub = formData.items.reduce((acc, item) => {
       const w = Number(item.netWeight) || 0;
-      const r = Number(item.rate) || 0;
+      const r = Number((Number(item.rate)/10).toFixed(2)) || 0;
       const mc = Number(item.makingCharges) || 0;
       const oc = Number(item.otherCharges) || 0;
       const base = w * r;
@@ -383,7 +383,7 @@ const ModernInvoiceForm = () => {
                           <InputField label="Purity" icon={Sparkles} value={item.purity} onChange={(v: string) => handleInputChange("purity", v, index)} />
                           <InputField label="Gross Weight (g)" icon={Calculator} type="number" value={item.grossWeight} error={errors[`items.${index}.netWeight`]} onChange={(v: string) => handleInputChange("grossWeight", v, index)} />
                           <InputField label="Net Weight (g)" icon={Calculator} type="number" value={item.netWeight} error={errors[`items.${index}.netWeight`]} onChange={(v: string) => handleInputChange("netWeight", v, index)} />
-                          <InputField label="Rate / 1g (₹)" icon={Calculator} type="number" value={item.rate} error={errors[`items.${index}.rate`]} onChange={(v: string) => handleInputChange("rate", v, index)} />
+                          <InputField label="Rate / 10g (₹)" icon={Calculator} type="number" value={item.rate} error={errors[`items.${index}.rate`]} onChange={(v: string) => handleInputChange("rate", v, index)} />
                           <InputField label="Making Charges %" icon={Calculator} type="number" value={item.makingCharges} error={errors[`items.${index}.makingCharges`]} onChange={(v: string) => handleInputChange("makingCharges", v, index)} />
                           <InputField label="Other Charges (₹)" icon={Calculator} type="number" value={item.otherCharges} error={errors[`items.${index}.otherCharges`]} onChange={(v: string) => handleInputChange("otherCharges", v, index)} />
                         </div>
