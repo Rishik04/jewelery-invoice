@@ -81,7 +81,7 @@ const DescriptionInput = ({ value, onChange, typ, onProductSelect, error }: any)
         onChange={(v: string) => { setSearch(v); onChange(v); setShowDropdown(true); }}
         onFocus={() => setShowDropdown(true)}
         onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-        />
+      />
       {error && (
         <p className="text-red-500 text-xs mt-1">
           {error}
@@ -366,7 +366,7 @@ const ModernInvoiceForm = () => {
                             value={item.description}
                             typ={item.type}
                             onChange={(v: string) => handleInputChange("description", v, index)}
-                             error={errors[`items.${index}.description`]} 
+                            error={errors[`items.${index}.description`]}
                             onProductSelect={(product: any) => {
                               handleInputChange("description", product.name, index);
                               handleInputChange("id", product._id, index);
@@ -411,31 +411,64 @@ const ModernInvoiceForm = () => {
                     </div>
                   </div>
 
-                  <div className="flex gap-4 justify-center mt-8">
-                    <motion.button whileHover={{ scale: 1.02 }} onClick={() => setStep(1)}
-                      className="flex items-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200">
-                      <ArrowLeft size={18} /> Back
+                  <div className="flex gap-2 sm:gap-4 justify-center mt-6 sm:mt-8 flex-wrap">
+
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      onClick={() => setStep(1)}
+                      className="flex items-center gap-1 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3 
+               text-sm sm:text-base
+               bg-gray-100 text-gray-700 font-medium rounded-lg sm:rounded-xl hover:bg-gray-200"
+                    >
+                      <ArrowLeft size={16} className="sm:w-[18px] sm:h-[18px]" /> Back
                     </motion.button>
-                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleSubmit}
+
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleSubmit}
                       disabled={createInvoiceMutation.isPending || printInvoiceMutation.isPending}
-                      className="flex items-center gap-2 px-7 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold rounded-xl shadow-lg disabled:opacity-50">
+                      className="flex items-center gap-1 sm:gap-2 px-4 sm:px-7 py-2 sm:py-4 
+               text-sm sm:text-base
+               bg-gradient-to-r from-green-600 to-emerald-600 
+               text-white font-bold rounded-lg sm:rounded-xl shadow-lg disabled:opacity-50"
+                    >
                       {createInvoiceMutation.isPending ? (
-                        <><span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Generating...</>
+                        <>
+                          <span className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span className="hidden sm:inline">Generating...</span>
+                        </>
                       ) : (
-                        <><Receipt size={20} /> Download Invoice</>
+                        <>
+                          <Receipt size={16} className="sm:w-[20px] sm:h-[20px]" />
+                          <span className="hidden sm:inline">Download</span>
+                        </>
                       )}
                     </motion.button>
 
-                    {/* Print (desktop) / Download (mobile) */}
-                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handlePrint}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handlePrint}
                       disabled={createInvoiceMutation.isPending || printInvoiceMutation.isPending}
-                      className="flex items-center gap-2 px-7 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl shadow-lg disabled:opacity-50">
+                      className="flex items-center gap-1 sm:gap-2 px-4 sm:px-7 py-2 sm:py-4 
+               text-sm sm:text-base
+               bg-gradient-to-r from-blue-600 to-purple-600 
+               text-white font-bold rounded-lg sm:rounded-xl shadow-lg disabled:opacity-50"
+                    >
                       {printInvoiceMutation.isPending ? (
-                        <><span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Opening...</>
+                        <>
+                          <span className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span className="hidden sm:inline">Opening...</span>
+                        </>
                       ) : (
-                        <><Printer size={20} /> Print Invoice</>
+                        <>
+                          <Printer size={16} className="sm:w-[20px] sm:h-[20px]" />
+                          <span className="hidden sm:inline">Print</span>
+                        </>
                       )}
                     </motion.button>
+
                   </div>
                 </motion.div>
               )}
