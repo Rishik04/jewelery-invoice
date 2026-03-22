@@ -1,6 +1,6 @@
 import express from "express";
 import { auth } from "../auth/auth.js";
-import { generateInvoice, getInvoices } from "../controllers/invoice.controller.js";
+import { cancelInvoice, generateInvoice, getInvoices } from "../controllers/invoice.controller.js";
 
 const invoiceRoutes = express.Router();
 
@@ -10,5 +10,6 @@ invoiceRoutes.get("/", (req, res) => {
 
 invoiceRoutes.post("/save-invoice", auth, generateInvoice);
 invoiceRoutes.get("/list", auth, getInvoices);
+invoiceRoutes.put("/:id/cancel", auth, cancelInvoice)
 
 export default invoiceRoutes;

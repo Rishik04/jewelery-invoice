@@ -26,7 +26,7 @@ export const saveInvoiceInDB = async (userId, data) => {
 
     const weight = item.weight || 0;
     const quantity = item.quantity || 1;
-    const rate = item.rate || 0;
+    const rate = Number(item.rate/10) || 0;
     const total = weight * quantity * rate; // rate per gram,
 
     logger.info("Total calculation of the item " + product.name + total);
@@ -77,6 +77,7 @@ export const saveInvoiceInDB = async (userId, data) => {
     subtotal: updatedData.subtotal,
     tax: updatedData.tax,
     totalAmount: updatedData.totalAmount,
+    status: "FINAL"
   }).save();
 
   // Attach populated company on the returned object (not persisted) for PDF generation
@@ -96,6 +97,19 @@ export const updateInvoiceFilePath = async (invoiceNumber, filePath) => {
   return await InvoiceModel.findOneAndUpdate(
     { invoiceNumber },
     { filePath },
+    { new: true }
+  );
+};
+
+export const cancelInvoiceService = async (id) => {
+  return await InvoiceModel.findOneAndUpdate(
+    { _id: id, status: { $ne: "CANCELLED" } },
+    {
+      $set: {
+        status: "CANCELLED",
+        cancelledAt: new Date(),
+      },
+    },
     { new: true }
   );
 };

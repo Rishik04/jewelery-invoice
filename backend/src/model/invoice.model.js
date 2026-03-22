@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { STATUS } from "./role.js";
 
 const invoiceItemSchema = new mongoose.Schema({
   productId: {
@@ -36,13 +37,18 @@ const invoiceSchema = new mongoose.Schema(
     },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Tenant",
+      ref: "User",
       required: true,
     },
     items: [invoiceItemSchema],
     subtotal: { type: Number },
     tax: { type: Number },
     totalAmount: { type: Number },
+    status: {
+      type: String,
+      enum: Object.values(STATUS),
+      default: Object.values(STATUS)[0]
+    },
     createdAt: { type: Date, default: Date.now },
   },
   { timestamps: true }

@@ -8,6 +8,7 @@ import authRoutes from "./routes/auth.routes.js";
 import companyRoutes from "./routes/company.routes.js";
 import invoiceRoutes from "./routes/invoice.routes.js";
 import * as dotenv from "dotenv";
+import path from "path";
 dotenv.config();
 
 // import errorMiddleware from "./middleware/error.middleware.js";
@@ -27,6 +28,11 @@ app.use(
 app.use(helmet());
 app.use(compression());
 app.use(morgan("dev"));
+
+app.use(
+  "/invoices",
+  express.static(path.join(process.cwd(), "src/public/invoices"))
+);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/company", companyRoutes);
