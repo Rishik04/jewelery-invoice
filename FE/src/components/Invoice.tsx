@@ -4,12 +4,16 @@ import { Link } from "react-router-dom";
 import { ConfirmDialog } from "./ConfirmDialog";
 
 const InvoicePage = () => {
-  const { data: invoices = [], isLoading: loading, error } = useInvoices();
   const cancelMutation = useCancelInvoice();
   const [selectedInvoice, setSelectedInvoice] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const limit = 10;
+  const { data: invoiceData, isLoading: loading, error } = useInvoices(page, limit);
+  const invoices = invoiceData?.data || [];
+  const total = invoiceData?.total || 0;
+  const totalPages = Math.ceil(total / limit);
 
   const handleCancel = (id: string) => {
-    console.log(id)
     setSelectedInvoice(id);
   };
 
@@ -19,6 +23,7 @@ const InvoicePage = () => {
     cancelMutation.mutate(selectedInvoice, {
       onSuccess: () => {
         setSelectedInvoice(null);
+        setPage((prev) => (prev > 1 ? prev - 1 : prev));
       },
     });
   };
@@ -189,6 +194,30 @@ const InvoicePage = () => {
 
                 </div>
               ))}
+            </div>
+
+            <div className="flex justify-between items-center mt-6">
+
+              <button
+                disabled={page === 1}
+                onClick={() => setPage((p) => p - 1)}
+                className="px-3 py-1 border rounded disabled:opacity-50"
+              >
+                Prev
+              </button>
+
+              <span className="text-sm">
+                Page {page} of {totalPages}
+              </span>
+
+              <button
+                disabled={page === totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                className="px-3 py-1 border rounded disabled:opacity-50"
+              >
+                Next
+              </button>
+
             </div>
 
           </div>

@@ -88,13 +88,14 @@ export const useCreateInvoice = useDownloadInvoice;
 
 // ─── List ─────────────────────────────────────────────────────────────────────
 
-export const useInvoices = () =>
+export const useInvoices = (page: Number, limit: Number) =>
   useQuery({
-    queryKey: ["invoices"],
+    queryKey: ["invoices", page],
     queryFn: async () => {
-      const res = await API.get("/invoice/list");
-      return res.data.data || [];
+      const res = await API.get(`/invoice/list?page=${page}&limit=${limit}`);
+      return res.data;
     },
+    placeholderData: (prev) => prev,
   });
 
 export const useCancelInvoice = () => {
