@@ -106,7 +106,7 @@ const DescriptionInput = ({ value, onChange, typ, onProductSelect, error }: any)
   );
 };
 
-const EMPTY_ITEM = { type: "G", id: "", description: "", hsnCode: "7113", purity: "22K", grossWeight: 0, netWeight: 0, rate: 0, makingCharges: 0, otherCharges: 0 };
+const EMPTY_ITEM = { type: "G", id: "", description: "", hsnCode: "7113", purity: "22K", grossWeight: 0, netWeight: 0, rate: 0, makingCharges: 0, otherCharges: 0, makingChargesType: "PERCENT" };
 
 const ModernInvoiceForm = () => {
   const [step, setStep] = useState(1);
@@ -153,8 +153,12 @@ const ModernInvoiceForm = () => {
           e[`items.${index}.netWeight`] = "Valid weight required";
         if (!item.rate || Number(item.rate) <= 0)
           e[`items.${index}.rate`] = "Valid rate required";
-        if (item.makingCharges < 0)
-          e[`items.${index}.makingCharges`] = "Invalid %";
+        if (item.makingCharges < 0) {
+          e[`items.${index}.makingCharges`] =
+            item.makingChargesType === "FLAT"
+              ? "Invalid amount"
+              : "Invalid %";
+        }
         if (item.otherCharges < 0)
           e[`items.${index}.otherCharges`] = "Invalid amount";
       });
@@ -169,17 +173,24 @@ const ModernInvoiceForm = () => {
   const addItem = () => setFormData(prev => ({ ...prev, items: [...prev.items, { ...EMPTY_ITEM }] }));
   const removeItem = (i: number) => setFormData(prev => ({ ...prev, items: prev.items.filter((_, idx) => idx !== i) }));
 
-  const { subtotal, sgst, cgst, total } = useMemo(() => {
+  const { subtotal, sgst, cgst, total, otherCharges } = useMemo(() => {
     const sub = formData.items.reduce((acc, item) => {
       const w = Number(item.netWeight) || 0;
-      const r = Number((Number(item.rate)/10).toFixed(2)) || 0;
+      const r = Number((Number(item.rate) / 10).toFixed(2)) || 0;
       const mc = Number(item.makingCharges) || 0;
-      const oc = Number(item.otherCharges) || 0;
       const base = w * r;
-      return acc + base + (base * mc / 100) + oc;
+      const makingAmount =
+        item.makingChargesType === "FLAT"
+          ? mc
+          : (base * mc) / 100;
+      return acc + base + makingAmount;
+    }, 0);
+    const other = formData.items.reduce((acc, item) => {
+      const oc = Number(item.otherCharges) || 0;
+      return acc + oc;
     }, 0);
     const s = parseFloat((sub * 0.015).toFixed(2));
-    return { subtotal: parseFloat(sub.toFixed(2)), sgst: s, cgst: s, total: parseFloat((sub + s * 2).toFixed(2)) };
+    return { subtotal: parseFloat(sub.toFixed(2)), cgst: s, sgst: s, total: parseFloat((sub + s * 2 + other).toFixed(2)), otherCharges: other};
   }, [formData.items]);
 
   const handleSubmit = async () => {
@@ -383,9 +394,49 @@ const ModernInvoiceForm = () => {
                           <InputField label="Purity" icon={Sparkles} value={item.purity} onChange={(v: string) => handleInputChange("purity", v, index)} />
                           <InputField label="Gross Weight (g)" icon={Calculator} type="number" value={item.grossWeight} error={errors[`items.${index}.netWeight`]} onChange={(v: string) => handleInputChange("grossWeight", v, index)} />
                           <InputField label="Net Weight (g)" icon={Calculator} type="number" value={item.netWeight} error={errors[`items.${index}.netWeight`]} onChange={(v: string) => handleInputChange("netWeight", v, index)} />
-                          <InputField label="Rate / 10g (₹)" icon={Calculator} type="number" value={item.rate} error={errors[`items.${index}.rate`]} onChange={(v: string) => handleInputChange("rate", v, index)} />
-                          <InputField label="Making Charges %" icon={Calculator} type="number" value={item.makingCharges} error={errors[`items.${index}.makingCharges`]} onChange={(v: string) => handleInputChange("makingCharges", v, index)} />
                           <InputField label="Other Charges (₹)" icon={Calculator} type="number" value={item.otherCharges} error={errors[`items.${index}.otherCharges`]} onChange={(v: string) => handleInputChange("otherCharges", v, index)} />
+                          <InputField label="Rate / 10g (₹)" icon={Calculator} type="number" value={item.rate} error={errors[`items.${index}.rate`]} onChange={(v: string) => handleInputChange("rate", v, index)} />
+                          <div className="flex flex-col gap-1">
+                            {/* ✅ Label */}
+                            <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                              <Calculator size={16} />
+                              Charge Type
+                            </label>
+
+                            {/* ✅ Compact toggle aligned with input height */}
+                            <div className="flex h-[54px] rounded-xl border-2 border-gray-200 overflow-hidden bg-gray-50">
+                              <button
+                                type="button"
+                                onClick={() => handleInputChange("makingChargesType", "PERCENT", index)}
+                                className={`flex-1 text-sm font-semibold transition-all
+        ${item.makingChargesType === "PERCENT"
+                                    ? "bg-blue-600 text-white"
+                                    : "text-gray-600 hover:bg-gray-100"}`}
+                              >
+                                %
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleInputChange("makingChargesType", "FLAT", index)}
+                                className={`flex-1 text-sm font-semibold transition-all
+        ${item.makingChargesType === "FLAT"
+                                    ? "bg-blue-600 text-white"
+                                    : "text-gray-600 hover:bg-gray-100"}`}
+                              >
+                                ₹
+                              </button>
+                            </div>
+                          </div>
+                          <InputField
+                            label={item.makingChargesType === "FLAT" ? "Making Charges (₹)" : "Making Charges (%)"}
+                            icon={Calculator}
+                            type="number"
+                            value={item.makingCharges}
+                            error={errors[`items.${index}.makingCharges`]}
+                            onChange={(v: string) => handleInputChange("makingCharges", v, index)}
+                          />
+
                         </div>
                       </motion.div>
                     ))}
@@ -400,13 +451,13 @@ const ModernInvoiceForm = () => {
                   <div className="mt-8 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-200">
                     <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">Invoice Summary</h3>
                     <div className="max-w-sm mx-auto space-y-2">
-                      {[["Subtotal", subtotal], ["SGST (1.5%)", sgst], ["CGST (1.5%)", cgst]].map(([label, val]) => (
+                      {[["Subtotal", subtotal], ["CGST (1.5%)", sgst], ["SGST (1.5%)", cgst], ["Other Charges", otherCharges]].map(([label, val]) => (
                         <div key={label as string} className="flex justify-between text-gray-700">
-                          <span>{label}:</span><span className="font-semibold">₹ {(val as number).toFixed(2)}</span>
+                          <span>{label}:</span><span className="font-semibold">₹ {(val as number).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
                         </div>
                       ))}
                       <div className="border-t-2 border-gray-300 pt-3 flex justify-between text-xl font-bold text-gray-900">
-                        <span>Total:</span><span>₹ {total.toFixed(2)}</span>
+                        <span>Total:</span><span>₹ {total.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
                       </div>
                     </div>
                   </div>

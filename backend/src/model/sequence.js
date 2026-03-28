@@ -1,10 +1,16 @@
 import mongoose from "mongoose";
 
-const dailySequenceSchema = new mongoose.Schema({
-  _id: { type: String, required: true }, // Will store the date string 'YYYYMMDD'
-  sequence_value: { type: Number, default: 0 },
-});
+const sequence = new mongoose.Schema(
+  {
+    fy: { type: String, required: true },
+    seq: { type: Number, default: 0 },
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: "Company" },
+  },
+  { timestamps: true },
+);
 
-const DailySequence = mongoose.model("DailySequence", dailySequenceSchema);
+sequence.index({ fy: 1, companyId: 1 }, { unique: true });
 
-export default DailySequence;
+const Sequence = mongoose.model("Sequence", sequence);
+
+export default Sequence;

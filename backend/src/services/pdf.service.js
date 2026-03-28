@@ -174,19 +174,6 @@ const generateHeader = (doc, company) => {
     .fillColor(CLR.light)
     .text("CUSTOMER COPY", PAGE_W - M - 72, y, { lineBreak: false });
 
-  // Brand name — centred, full width
-  doc
-    .font("heading")
-    .fontSize(20)
-    .fillColor(CLR.black)
-    .text(company.name.toUpperCase(), M, y + 3, {
-      width: CONTENT_W,
-      align: "center",
-      lineBreak: false,
-    });
-
-  y += 30; // brand name height
-
   // GST INVOICE gold badge — centred
   const badgeW = 82,
     badgeH = 14;
@@ -200,9 +187,22 @@ const generateHeader = (doc, company) => {
 
   y += badgeH + 8;
 
+  // Brand name — centred, full width
+  doc
+    .font("heading")
+    .fontSize(20)
+    .fillColor(CLR.black)
+    .text(company.name.toUpperCase(), M, y + 3, {
+      width: CONTENT_W,
+      align: "center",
+      lineBreak: false,
+    });
+
+  y += 30; // brand name height
+
   // Section bottom rule
-  hline(doc, y, M, PAGE_W - M, 0.6, CLR.ruleHard);
-  doc.y = y + 6;
+  hline(doc, y + 10, M, PAGE_W - M, 0.6, CLR.ruleHard);
+  doc.y = y + 15;
 };
 
 // ─── 2. SELLER + CUSTOMER INFO ────────────────────────────────────────────────
@@ -300,26 +300,22 @@ const generateCustomerInfo = (doc, invoice, company) => {
   const sectionH = Math.max(leftEndY, rightEndY) - topY + 6;
 
   // Vertical divider between columns
-  vline(doc, midX - 4, topY - 2, topY + sectionH, 0.4, CLR.rule);
+  vline(doc, midX - 4, topY - 5, topY + sectionH + 5, 0.4, CLR.rule);
 
-  hline(doc, topY + sectionH, M, PAGE_W - M, 0.6, CLR.ruleHard);
-  doc.y = topY + sectionH + 5;
+  hline(doc, topY + sectionH + 5, M, PAGE_W - M, 0.6, CLR.ruleHard);
+  doc.y = topY + sectionH + 20;
 };
 
 // ─── 3. ITEMS TABLE ──────────────────────────────────────────────────────────
 const buildRows = (invoice, rate) =>
   (invoice.items ?? []).map((item) => {
     const metalVal = Number(item.total) || 0;
-    const makingCharges =
-      item.makingChargesType === "flat"
-        ? Number(item.makingCharges) || 0
-        : (metalVal * (Number(item.makingCharges) || 0)) / 100;
-    const otherCharges = Number(item.otherCharges) || 0;
-    const baseAmount = metalVal + makingCharges + otherCharges;
+    const makingCharges = Number(item.makingCharges) || 0;
+    const baseAmount = metalVal + makingCharges;
     const gst = calcGST(baseAmount, rate);
     const grossWt = Number(item.weight ?? 0).toFixed(3);
     const metalWt = Number(item.weight ?? 0).toFixed(3);
-    const goldRate = Number(item.rate*10) ?? 0
+    const goldRate = Number(item.rate * 10) ?? 0;
     // const rate = Number(item.rate ?? 0)
 
     return [
@@ -334,7 +330,7 @@ const buildRows = (invoice, rate) =>
       fmt(makingCharges), // COL.MAKING  8
       fmt(gst), // COL.SGST    9
       fmt(gst), // COL.CGST    10
-      fmt(baseAmount + gst * 2), // COL.AMOUNT  11
+      fmt(baseAmount + gst * 2 + item.otherCharges), // COL.AMOUNT  11
     ];
   });
 
@@ -379,8 +375,8 @@ const generateItemsTable = (doc, invoice, company) => {
 
   const HEADER_H = 26;
   const ROW_H = 20;
-  const tableX = M;
-  const tableW = CONTENT_W;
+  const tableX = M - 8;
+  const tableW = CONTENT_W + 16;
   let y = doc.y;
   const tableTop = y;
 
@@ -498,12 +494,13 @@ const generateItemsTable = (doc, invoice, company) => {
     vline(doc, x, tableTop, y, 0.3, CLR.rule);
   });
 
-  doc.y = y + 4;
+  doc.y = y + 10;
 
   // ── Totals calculation
+  const otherChargesTotal = invoice.items.reduce((sum, i)=>(sum + i.otherCharges), 0)
   const netInvoice = totalAmt;
   const rateMulti = 1 + (rate / 100) * 2;
-  const preGSTTotal = netInvoice / rateMulti;
+  const preGSTTotal = (netInvoice - otherChargesTotal) / rateMulti;
   const gstAmt = calcGST(preGSTTotal, rate);
   const rounded = roundOff(netInvoice);
 
@@ -536,7 +533,7 @@ const drawTotalsSection = (
     .font("bold")
     .fontSize(7)
     .fillColor(CLR.light)
-    .text("PAYMENT DETAILS", tableX, y0);
+    .text("PAYMENT DETAILS", tableX + 4, y0);
 
   const PAY_H = 15;
   const payTop = doc.y + 2;
@@ -571,7 +568,7 @@ const drawTotalsSection = (
 
   const custName = invoice.customer?.name ?? "";
   const payData = ["Cash", custName, fmtIN(rounded.rounded)];
-  const payTotR = ["Total Paid", "", fmtIN(rounded.rounded)];
+  const payTotR = ["Total Amount Paid", "", fmtIN(rounded.rounded)];
 
   [payData, payTotR].forEach((row, ri) => {
     const rowY = payTop + PAY_H + ri * PAY_H;
@@ -596,10 +593,26 @@ const drawTotalsSection = (
 
   // ── RIGHT: Charges breakdown (no Scheme Discount row)
   const chargeRows = [
-    { label: "Taxable Amount", val: `${CURRENCY} ${fmtIN(preGSTTotal)}`, bold: false },
-    { label: `CGST @ ${rate.toFixed(2)}%`, val: `${CURRENCY} ${fmtIN(gstAmt)}`, bold: false },
-    { label: `SGST @ ${rate.toFixed(2)}%`, val: `${CURRENCY} ${fmtIN(gstAmt)}`, bold: false },
-    { label: "Other Charges", val: "0.00", bold: false },
+    {
+      label: "Taxable Amount",
+      val: `${CURRENCY} ${fmtIN(preGSTTotal)}`,
+      bold: false,
+    },
+    {
+      label: `CGST @ ${rate.toFixed(2)}%`,
+      val: `${CURRENCY} ${fmtIN(gstAmt)}`,
+      bold: false,
+    },
+    {
+      label: `SGST @ ${rate.toFixed(2)}%`,
+      val: `${CURRENCY} ${fmtIN(gstAmt)}`,
+      bold: false,
+    },
+    {
+      label: "Other Charges",
+      val: `${CURRENCY} ${invoice.items.reduce((sum, i)=>{return sum + i.otherCharges}, 0)}`,
+      bold: false,
+    },
     { label: "Round Off", val: `${CURRENCY} ${rounded.display}`, bold: false },
     {
       label: "Total Amount to be Paid",
@@ -611,10 +624,11 @@ const drawTotalsSection = (
   const CR_H = 15;
 
   chargeRows.forEach((cr, i) => {
-    const cry = y0 + i * CR_H;
+    let cry = y0 + i * CR_H;
     const isLast = i === chargeRows.length - 1;
 
     if (isLast) {
+      cry += 10;
       fillRect(doc, rightX, cry, rightW, CR_H + 2, CLR.bgHead);
       hline(doc, cry, rightX, rightX + rightW, 0.8, CLR.dark);
     }
@@ -645,31 +659,30 @@ const drawTotalsSection = (
   const sectionBottom = y0 + chargeRows.length * CR_H + 6;
 
   // Divider between payment (left) and charges (right)
-  // vline(doc, rightX - 1, y0, sectionBottom, 0.4, CLR.rule);
+  vline(doc, rightX, y0 - 10, sectionBottom + 32, 0.4, CLR.rule);
 
-  doc.y = sectionBottom;
+  doc.y = sectionBottom + 10;
 
   // ── Amount in words
-  hline(doc, sectionBottom, tableX, tableX + tableW, 0.6, CLR.ruleHard);
   doc
     .font("bold")
     .fontSize(7.5)
     .fillColor(CLR.dark)
     .text(
-      `Value in Words: ${convertAmountToIndianWords(rounded.rounded)}`,
-      tableX,
-      sectionBottom + 6,
-      { width: tableW },
+      `Value in Words:- ${convertAmountToIndianWords(rounded.rounded)}`,
+      rightX + 4,
+      sectionBottom + 10,
+      { width: rightW - 8 },
     );
 
-  doc.y = sectionBottom + 18;
-  hline(doc, doc.y, tableX, tableX + tableW, 0.5, CLR.ruleHard);
+  doc.y = sectionBottom + 10;
+  hline(doc, sectionBottom + 32, tableX, rightX + rightW, 0.8, CLR.ruleHard);
   doc.y += 4;
 };
 
 // ─── 5. FOOTER ───────────────────────────────────────────────────────────────
 const generateFooter = (doc, company, invoice) => {
-  const FOOTER_TOP = PAGE_H - FOOTER_H;
+  const FOOTER_TOP = PAGE_H - FOOTER_H - 30;
   if (doc.y > FOOTER_TOP - 10) doc.addPage();
   doc.y = FOOTER_TOP;
 
@@ -746,6 +759,7 @@ const generateFooter = (doc, company, invoice) => {
       { label: "Bank", value: company.bank.bankName ?? "" },
       { label: "Branch", value: company.bank.branch ?? "" },
       { label: "A/C No", value: company.bank.accountNumber ?? "" },
+      { label: "Holder Name", value: company.bank.holderName ?? "" },
       { label: "IFSC", value: company.bank.ifsc ?? "" },
     ];
     const LINE_H = 12;
@@ -780,18 +794,6 @@ const generateFooter = (doc, company, invoice) => {
         .text(value, { lineBreak: false });
     });
   }
-
-  // ── Disclaimer (no gold rule above it — removed)
-  // doc
-  //   .font("normal")
-  //   .fontSize(6.5)
-  //   .fillColor(CLR.light)
-  //   .text(
-  //     "This is a computer-generated invoice and does not require a physical signature.",
-  //     M,
-  //     FOOTER_TOP + FOOTER_H - 10,
-  //     { width: CONTENT_W, align: "center" },
-  //   );
 };
 
 // ─── 6. Outer border ─────────────────────────────────────────────────────────
@@ -835,8 +837,8 @@ export const createPDF = async (invoice, res = null) => {
     doc.pipe(res);
   } else {
     fullPath = path.join(INVOICE_DIR, fileName);
-    fullPath = fullPath
-    logger.info("File path for invoice " + fullPath)
+    fullPath = fullPath;
+    logger.info("File path for invoice " + fullPath);
     filePath = `invoices/${fileName}`;
     fs.mkdirSync(path.dirname(fullPath), { recursive: true });
     diskStream = fs.createWriteStream(fullPath);

@@ -2,6 +2,7 @@ import InvoiceModel from "../model/invoice.model.js";
 import { errorResponse, successResponse } from "../response/response.js";
 import {
   cancelInvoiceService,
+  getInvoicesWithPageNumber,
   saveInvoiceInDB,
   updateInvoiceFilePath,
 } from "../services/invoice.service.js";
@@ -43,17 +44,18 @@ export const generateInvoice = async (req, res) => {
   }
 };
 
-// Get all invoices for the tenant (bonus endpoint)
 export const getInvoices = async (req, res) => {
   try {
-    const invoices = await InvoiceModel.find({
-      userId: req.user.userId,
-    }).sort({ createdAt: -1 });
-    return successResponse(res, 200, "Invoices fetched", invoices);
-  } catch (err) {
-    console.log(err);
-    return errorResponse(res, 400, "Unable to fetch invoices", {
-      message: err.message,
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const result = await getInvoicesWithPageNumber(page, limit);
+
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to fetch invoices",
+      error: error.message,
     });
   }
 };
@@ -64,7 +66,7 @@ export const cancelInvoice = async (req, res) => {
     if (!id) {
       return errorResponse(res, 400, "Invoice ID is required");
     }
-    logger.info("Cancel with invoice id " + id)
+    logger.info("Cancel with invoice id " + id);
     const invoice = await cancelInvoiceService(id);
     if (!invoice) {
       return errorResponse(res, 404, "Invoice not found or already cancelled");

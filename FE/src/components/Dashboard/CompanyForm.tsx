@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle, Building2, CreditCard, FileSignature, FileText,
   Hash, Landmark, LocateIcon, Mail, MapPin, Phone,
+  User,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 
@@ -78,7 +79,7 @@ const ModernCompanyForm = ({ company, onClose, isOpen }: any) => {
       name: "", gstin: "", hallMarkNumber: "", email: "", phone: "",
       termsConditions: "",
       address: { street: "", city: "", landmark: "", state: "", statecode: "", pincode: "" },
-      bank: { bankName: "", branch: "", accountNumber: "", ifsc: "" },
+      bank: { bankName: "", branch: "", accountNumber: "", ifsc: "", holderName: "" },
     };
     if (company) {
       setFormData({
@@ -123,6 +124,7 @@ const ModernCompanyForm = ({ company, onClose, isOpen }: any) => {
       if (!formData.bank?.bankName) e["bank.bankName"] = "Bank name is required";
       if (!formData.bank?.accountNumber) e["bank.accountNumber"] = "Account number is required";
       if (!formData.bank?.ifsc) e["bank.ifsc"] = "IFSC code is required";
+      if (!formData.bank?.holderName) e["bank.holderName"] = "Holder Name is required";
     }
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -152,6 +154,7 @@ const ModernCompanyForm = ({ company, onClose, isOpen }: any) => {
       branch: formData.bank?.branch,
       accountNumber: formData.bank?.accountNumber,
       ifsc: formData.bank?.ifsc,
+      holderName: formData.bank?.holderName,
     };
 
     try {
@@ -218,6 +221,7 @@ const ModernCompanyForm = ({ company, onClose, isOpen }: any) => {
               <InputField label="Branch" value={formData.bank?.branch} onChange={(v: any) => handleInputChange("bank.branch", v)} placeholder="Dadar Branch" icon={Building2} />
               <InputField label="Account Number" value={formData.bank?.accountNumber} onChange={(v: any) => handleInputChange("bank.accountNumber", v)} error={errors["bank.accountNumber"]} placeholder="XXXXXXXX" icon={CreditCard} required />
               <InputField label="IFSC Code" value={formData.bank?.ifsc} onChange={(v: any) => handleInputChange("bank.ifsc", v)} error={errors["bank.ifsc"]} placeholder="SBIN0001234" icon={Hash} required />
+              <InputField label="Holder Name" value={formData.bank?.holderName} onChange={(v: any) => handleInputChange("bank.holderName", v)} error={errors["bank.holderName"]} placeholder="S Jewellers" icon={User} required />
               <InputField
                 label="Terms & Conditions (one per line)"
                 value={formData.termsConditions}
