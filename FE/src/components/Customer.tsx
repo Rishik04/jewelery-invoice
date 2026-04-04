@@ -1,67 +1,49 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 import * as z from "zod";
-import API from "@/lib/api";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { useCreateCustomer, useCustomers, useDeleteCustomer, useUpdateCustomer } from "@/features/customer/useCustomer";
+import { UserPlus } from "lucide-react";
 
 interface Customer {
   _id?: string;
-  name: string;
-  address: string;
-  phone: string;
-  state: string;
+  customerName: string;
+  customerAddress: string;
+  customerPhone: string;
 }
 
-// ─── React Query hooks ────────────────────────────────────────────────────────
-
-// NOTE: The backend doesn't yet expose a customer list/create/update/delete API.
-// These hooks are wired up and ready — add the routes to the backend when needed.
-// For now useCustomers returns an empty list gracefully.
-
-const useCustomers = () =>
-  useQuery<Customer[]>({
-    queryKey: ["customers"],
-    queryFn: async () => {
-      // Swap in real endpoint when available: GET /api/customer
-      // const res = await API.get("/customer");
-      // return res.data.data || [];
-      return [];
-    },
-  });
-
-const useCreateCustomer = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: Omit<Customer, "_id">) => API.post("/customer", data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["customers"] }),
-  });
-};
-
-const useUpdateCustomer = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ _id, ...data }: Customer) => API.put(`/customer/${_id}`, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["customers"] }),
-  });
-};
-
-const useDeleteCustomer = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => API.delete(`/customer/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["customers"] }),
-  });
-};
-
-// ─── Zod schema ──────────────────────────────────────────────────────────────
+// ─── Schema ───────────────────────────────────────────────────────────────────
 
 const customerSchema = z.object({
-  name: z.string().min(3, "Name must be at least 3 characters"),
-  address: z.string().min(5, "Please provide a valid address"),
-  phone: z
+  customerName: z.string().min(3, "Name must be at least 3 characters"),
+  customerAddress: z.string().min(5, "Please provide a valid address"),
+  customerPhone: z
     .string()
     .min(10, "Phone must be at least 10 digits")
     .regex(/^\d+$/, "Phone must contain only digits"),
@@ -69,16 +51,24 @@ const customerSchema = z.object({
 });
 type CustomerFormInputs = z.infer<typeof customerSchema>;
 
-// ─── Customer Form ─────────────────────────────────────────────────────────
+// ─── Form ─────────────────────────────────────────────────────────────────────
+
+const FIELDS = [
+  { id: "customerName", label: "Full Name", type: "text" },
+  { id: "customerAddress", label: "Address", type: "text" },
+  { id: "customerPhone", label: "Phone Number", type: "tel" },
+] as const;
 
 const CustomerForm = ({
   customer,
   onSave,
   onCancel,
+  isPending,
 }: {
   customer: Customer | null;
   onSave: (data: Customer) => void;
   onCancel: () => void;
+  isPending: boolean;
 }) => {
   const {
     register,
@@ -86,57 +76,42 @@ const CustomerForm = ({
     formState: { errors },
   } = useForm<CustomerFormInputs>({
     resolver: zodResolver(customerSchema),
-    defaultValues: customer ?? { name: "", address: "", phone: "", state: "" },
+    defaultValues: customer ?? { customerName: "", customerAddress: "", customerPhone: "" },
   });
 
   const onSubmit: SubmitHandler<CustomerFormInputs> = (data) =>
     onSave({ ...customer, ...data });
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      {[
-        { id: "name", label: "Full Name", type: "text" },
-        { id: "address", label: "Address", type: "text" },
-        { id: "phone", label: "Phone Number", type: "tel" },
-        { id: "state", label: "State", type: "text" },
-      ].map(({ id, label, type }) => (
-        <div key={id} className="space-y-1">
-          <label htmlFor={id} className="text-sm font-medium text-gray-700">
-            {label}
-          </label>
-          <input
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-1">
+      {FIELDS.map(({ id, label, type }) => (
+        <div key={id} className="space-y-1.5">
+          <Label htmlFor={id}>{label}</Label>
+          <Input
             id={id}
             type={type}
-            {...register(id as keyof CustomerFormInputs)}
-            className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400"
+            placeholder={label}
+            {...register(id)}
           />
-          {errors[id as keyof CustomerFormInputs] && (
-            <p className="text-xs text-red-600">
-              {errors[id as keyof CustomerFormInputs]?.message}
-            </p>
+          {errors[id] && (
+            <p className="text-xs text-red-500">{errors[id]?.message}</p>
           )}
         </div>
       ))}
+
       <div className="flex justify-end gap-3 pt-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-        >
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isPending}>
           Cancel
-        </button>
-        <button
-          type="submit"
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-        >
-          Save Customer
-        </button>
+        </Button>
+        <Button type="submit" disabled={isPending}>
+          {isPending ? "Saving…" : customer?._id ? "Update Customer" : "Add Customer"}
+        </Button>
       </div>
     </form>
   );
 };
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 const CustomerPage = () => {
   const { data: customers = [], isLoading, error } = useCustomers();
@@ -146,105 +121,169 @@ const CustomerPage = () => {
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const isPending = createCustomer.isPending || updateCustomer.isPending;
+
+  const openAdd = () => { setEditing(null); setIsFormOpen(true); };
+  const openEdit = (c: Customer) => { setEditing(c); setIsFormOpen(true); };
+  const closeForm = () => { setIsFormOpen(false); setEditing(null); };
 
   const handleSave = (data: Customer) => {
-    if (data._id) updateCustomer.mutate(data);
-    else createCustomer.mutate(data);
-    setIsFormOpen(false);
-    setEditing(null);
+    if (data._id) updateCustomer.mutate(data, { onSuccess: closeForm });
+    else createCustomer.mutate(data, { onSuccess: closeForm });
+  };
+
+  const handleDelete = (id: string) => {
+    setDeletingId(id);
+    deleteCustomer.mutate(id, { onSettled: () => setDeletingId(null) });
   };
 
   return (
     <div className="p-4 md:p-8 min-h-screen">
       <div className="max-w-7xl mx-auto">
-        <div className="rounded-xl border bg-white shadow-sm">
-          <div className="p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b">
-            <div>
-              <h3 className="text-2xl font-semibold">Customers</h3>
-              <p className="text-sm text-gray-500 mt-1">
-                View, add, and manage your customers.
-              </p>
-            </div>
-            <button
-              onClick={() => { setEditing(null); setIsFormOpen(true); }}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
-            >
-              + Add New Customer
-            </button>
-          </div>
+        <Card className="shadow-sm">
 
-          <div className="p-6">
-            {isLoading ? (
+          {/* Header */}
+          <CardHeader>
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <div>
+                <CardTitle className="text-xl sm:text-2xl flex items-center gap-2">
+                  👥 Customers
+                </CardTitle>
+                <CardDescription className="mt-1">
+                  View, add, and manage your customers.
+                </CardDescription>
+              </div>
+              <Button onClick={openAdd} className="w-full sm:w-auto">
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add Customer
+              </Button>
+            </div>
+          </CardHeader>
+
+          <CardContent>
+
+            {/* Loading */}
+            {isLoading && (
               <div className="space-y-3">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-12 rounded-lg bg-gray-100 animate-pulse" />
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-12 w-full rounded-lg" />
                 ))}
               </div>
-            ) : error ? (
-              <div className="text-center py-8 text-red-600 bg-red-50 rounded-lg">
-                Failed to load customers.
+            )}
+
+            {/* Error */}
+            {error && (
+              <div className="text-center py-8 text-red-600 bg-red-50 rounded-lg border border-red-100">
+                Failed to load customers. Please try again.
               </div>
-            ) : customers.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
+            )}
+
+            {/* Empty */}
+            {!isLoading && !error && customers.length === 0 && (
+              <div className="text-center py-16 text-muted-foreground">
                 <p className="text-lg font-medium mb-1">No customers yet</p>
                 <p className="text-sm">Add your first customer to get started.</p>
               </div>
-            ) : (
-              <div className="overflow-x-auto border rounded-lg">
-                <table className="w-full text-sm">
-                  <thead className="border-b bg-gray-50">
-                    <tr>
-                      {["Name", "Address", "Phone", "State", "Actions"].map((h) => (
-                        <th key={h} className="h-12 px-4 text-left font-semibold text-gray-600">{h}</th>
+            )}
+
+            {/* Desktop Table */}
+            {!isLoading && customers.length > 0 && (
+              <>
+                <div className="hidden md:block rounded-lg border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        {["Name", "Phone", "Address", "Actions"].map((h) => (
+                          <TableHead key={h} className="font-semibold text-foreground">
+                            {h}
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {customers.map((c) => (
+                        <TableRow key={c._id}>
+                          <TableCell className="font-medium">{c.customerName}</TableCell>
+                          <TableCell>{c.customerPhone}</TableCell>
+                          <TableCell className="text-muted-foreground max-w-[200px] truncate">
+                            {c.customerAddress}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={() => openEdit(c)}
+                                className="text-sm text-blue-600 font-medium hover:underline underline-offset-2"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDelete(c._id!)}
+                                disabled={deletingId === c._id}
+                                className="text-sm text-red-600 font-medium hover:underline underline-offset-2 disabled:opacity-50"
+                              >
+                                {deletingId === c._id ? "Deleting…" : "Delete"}
+                              </button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
                       ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {customers.map((c) => (
-                      <tr key={c._id} className="border-b hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium">{c.name}</td>
-                        <td className="px-4 py-3 text-gray-600">{c.address}</td>
-                        <td className="px-4 py-3">{c.phone}</td>
-                        <td className="px-4 py-3">{c.state}</td>
-                        <td className="px-4 py-3 flex gap-2">
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile Cards */}
+                <div className="md:hidden space-y-3">
+                  {customers.map((c) => (
+                    <Card key={c._id} className="shadow-none border">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-1">
+                          <p className="font-semibold text-sm">{c.customerName}</p>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{c.customerPhone}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">{c.customerAddress}</p>
+                        <div className="flex gap-4 mt-3 text-xs font-medium">
                           <button
-                            onClick={() => { setEditing(c); setIsFormOpen(true); }}
-                            className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-lg"
+                            onClick={() => openEdit(c)}
+                            className="text-blue-600 hover:underline"
                           >
                             Edit
                           </button>
                           <button
-                            onClick={() => deleteCustomer.mutate(c._id!)}
-                            className="px-3 py-1 text-xs bg-red-50 text-red-600 hover:bg-red-100 rounded-lg"
+                            onClick={() => handleDelete(c._id!)}
+                            disabled={deletingId === c._id}
+                            className="text-red-600 hover:underline disabled:opacity-50"
                           >
-                            Delete
+                            {deletingId === c._id ? "Deleting…" : "Delete"}
                           </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </>
             )}
-          </div>
-        </div>
-
-        {/* Modal */}
-        {isFormOpen && (
-          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6">
-              <h2 className="text-lg font-semibold mb-4">
-                {editing ? "Edit Customer" : "Add New Customer"}
-              </h2>
-              <CustomerForm
-                customer={editing}
-                onSave={handleSave}
-                onCancel={() => { setIsFormOpen(false); setEditing(null); }}
-              />
-            </div>
-          </div>
-        )}
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Dialog */}
+      <Dialog open={isFormOpen} onOpenChange={(open) => { if (!open) closeForm(); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {editing ? "Edit Customer" : "Add New Customer"}
+            </DialogTitle>
+          </DialogHeader>
+          <CustomerForm
+            customer={editing}
+            onSave={handleSave}
+            onCancel={closeForm}
+            isPending={isPending}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

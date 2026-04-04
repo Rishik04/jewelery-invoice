@@ -190,7 +190,7 @@ const ModernInvoiceForm = () => {
       return acc + oc;
     }, 0);
     const s = parseFloat((sub * 0.015).toFixed(2));
-    return { subtotal: parseFloat(sub.toFixed(2)), cgst: s, sgst: s, total: parseFloat((sub + s * 2 + other).toFixed(2)), otherCharges: other};
+    return { subtotal: parseFloat(sub.toFixed(2)), cgst: s, sgst: s, total: parseFloat((sub + s * 2 + other).toFixed(2)), otherCharges: other };
   }, [formData.items]);
 
   const handleSubmit = async () => {

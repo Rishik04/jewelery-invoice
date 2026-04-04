@@ -2,7 +2,7 @@ import express from "express";
 import { auth } from "../auth/auth.js";
 import { createAddress, updateAddress } from "../controllers/addresss.controller.js";
 import { createBank, updateBank } from "../controllers/bank.controller.js";
-import { addCompany, getCompany, getCompanyById, updateCompany } from "../controllers/company.controller.js";
+import { addCompany, getCompany, getCompanyById, getCustomer, updateCompany } from "../controllers/company.controller.js";
 import { createProduct, deleteProduct, getProducts, getProductsByType, updateProduct } from "../controllers/product.controller.js";
 
 const companyRoutes = express.Router();
@@ -27,5 +27,8 @@ companyRoutes.get("/get-products", auth, getProducts);
 companyRoutes.get("/get-products/:type", auth, getProductsByType);
 companyRoutes.put("/update-product/:productId", auth, updateProduct);
 companyRoutes.delete("/delete/:productId", auth, deleteProduct);
+
+//customer
+companyRoutes.get("/customer", auth, getCustomer);
 
 export default companyRoutes;

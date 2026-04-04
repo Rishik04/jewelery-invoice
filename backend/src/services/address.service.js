@@ -4,7 +4,7 @@ import { logger } from "../utils/logger.js";
 
 // Upsert address by tenantId — a tenant should have only one address document
 export const createAddressInDB = async (data) => {
-  logger.info("upserting address for tenantId " + data.tenantId);
+  logger.info("upserting address for tenantId " + data.userId);
   try {
     let address;
 

@@ -343,7 +343,7 @@ const generateItemsTable = (doc, invoice, company) => {
   const cols = [
     { label: "Type", w: 30, align: "center" },
     { label: "HSN", w: 28, align: "center" },
-    { label: "Product Description", w: 85, align: "left" },
+    { label: "Product Description", w: 85, align: "center" },
     { label: "Purity", w: 36, align: "center" },
     { label: "Qty", w: 20, align: "center" },
     { label: "Gross\nWt (g)", w: 38, align: "center" },
@@ -355,7 +355,7 @@ const generateItemsTable = (doc, invoice, company) => {
     { label: "Product Value (₹)", w: 100, align: "right" }, // last col stretched below
   ];
   // Stretch last column to fill exactly
-  cols[cols.length - 1].w += CONTENT_W - cols.reduce((s, c) => s + c.w, 0);
+  cols[cols.length - 1].w += CONTENT_W + 16 - cols.reduce((s, c) => s + c.w, 0);
 
   // Display row — skip STONE_WT (COL 6), keep everything else in order
   const displayRows = rows.map((r) => [
@@ -567,7 +567,7 @@ const drawTotalsSection = (
   });
 
   const custName = invoice.customer?.name ?? "";
-  const payData = ["Cash", custName, fmtIN(rounded.rounded)];
+  const payData = ["Cash/UPI", custName, fmtIN(rounded.rounded)];
   const payTotR = ["Total Amount Paid", "", fmtIN(rounded.rounded)];
 
   [payData, payTotR].forEach((row, ri) => {
@@ -584,7 +584,7 @@ const drawTotalsSection = (
         .fillColor(CLR.dark)
         .text(String(row[ci] ?? ""), px + 2, rowY + 4, {
           width: pc.w - 4,
-          align: ci === 2 ? "right" : "center",
+          align: "center",
           lineBreak: false,
         });
       px += pc.w;

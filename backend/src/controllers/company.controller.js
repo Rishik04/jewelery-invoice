@@ -5,6 +5,7 @@ import { createBankInDB, updateBankInDB } from "../services/bank.service.js";
 import {
   createCompany,
   getCompanyByTenantId,
+  getCustomerByTenantId,
   updateCompanyDetails,
 } from "../services/company.service.js";
 import { logger } from "../utils/logger.js";
@@ -21,8 +22,6 @@ export const getCompany = async (req, res) => {
   }
 };
 
-// Add OR update company — idempotent.
-// A tenant can only have one company. If one already exists, update it.
 export const addCompany = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -126,3 +125,16 @@ export const updateCompany = async (req, res) => {
     return errorResponse(res, 500, "Error updating company", { message: error.message });
   }
 };
+
+//customer controllers
+export const getCustomer = async (req, res) => {
+  logger.info("Get customer by tenant id " + req.user.userId);
+  try {
+    const customer = await getCustomerByTenantId(req.user.userId);
+    if (!customer) return successResponse(res, 200, "No customer found", []);
+    return successResponse(res, 200, "Successfully found customer", customer);
+  } catch (error) {
+    logger.error(error);
+    return errorResponse(res, 500, "Error fetching customer", {});
+  }
+}; 

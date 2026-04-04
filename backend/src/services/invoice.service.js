@@ -3,6 +3,32 @@ import InvoiceModel from "../model/invoice.model.js";
 import Product from "../model/product.model.js";
 import Sequence from "../model/sequence.js";
 import { logger } from "../utils/logger.js";
+import archiver from "archiver";
+import fs from "fs";
+import path from "path";
+import { createCustomerData } from "./company.service.js";
+
+const resolveMonthYear = (fy, month) => {
+  const [startYear, endYear] = fy.split("-").map(Number);
+  return month >= 4 ? startYear : endYear;
+};
+
+const getMonthRange = (year, month) => ({
+  start: new Date(Date.UTC(year, month - 1, 1)),
+  end: new Date(Date.UTC(year, month, 0, 23, 59, 59, 999)),
+});
+
+const getFinancialYear = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1; // Jan = 0
+
+  if (month >= 4) {
+    return `${year}-${String(year + 1).slice(2)}`;
+  } else {
+    return `${year - 1}-${String(year).slice(2)}`;
+  }
+};
 
 //save invoice in db and return the populated invoice document
 export const saveInvoiceInDB = async (userId, data) => {
@@ -19,6 +45,7 @@ export const saveInvoiceInDB = async (userId, data) => {
 
   const { items, customer } = data;
   const invoiceNumber = await createInvoiceNumber(company._id);
+  await createCustomerData(customer, company._id, userId);
 
   // Map submitted items to invoice items with product snapshots
   const invoiceItems = items.map((item) => {
@@ -48,7 +75,7 @@ export const saveInvoiceInDB = async (userId, data) => {
       rate,
       total,
       makingCharges,
-      otherCharges: item.otherCharges || 0
+      otherCharges: item.otherCharges || 0,
     };
   });
 
@@ -63,11 +90,11 @@ export const saveInvoiceInDB = async (userId, data) => {
     return sum + total;
   }, 0);
 
-  logger.info("Total other charges " + otherChargesTotal)
+  logger.info("Total other charges " + otherChargesTotal);
 
   const taxRate = 3; // 1.5% SGST + 1.5% CGST
   const tax = parseFloat(((subtotal * taxRate) / 100).toFixed(2));
-  const totalAmount = parseFloat((otherChargesTotal + subtotal + tax)).toFixed(2);
+  const totalAmount = parseFloat(otherChargesTotal + subtotal + tax).toFixed(2);
 
   const updatedData = {
     ...data,
@@ -100,24 +127,6 @@ export const saveInvoiceInDB = async (userId, data) => {
   return invoiceObj;
 };
 
-const getFinancialYear = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1; // Jan = 0
-
-  if (month >= 4) {
-    return `${year}-${String(year + 1).slice(2)}`;
-  } else {
-    return `${year - 1}-${String(year).slice(2)}`;
-  }
-};
-
-// const createInvoiceNumber = async () => {
-//   const invoiceCount = await InvoiceModel.countDocuments();
-//   const index = invoiceCount + 1;
-//   return `SJ_${String(index).padStart(5, "0")}`;
-// };
-
 export const createInvoiceNumber = async (companyId) => {
   const fy = getFinancialYear();
 
@@ -133,7 +142,6 @@ export const createInvoiceNumber = async (companyId) => {
   return `SJ_${fy}_${String(seq).padStart(4, "0")}`;
 };
 
-// Update invoice with the generated PDF file path
 export const updateInvoiceFilePath = async (invoiceNumber, filePath) => {
   return await InvoiceModel.findOneAndUpdate(
     { invoiceNumber },
@@ -155,16 +163,16 @@ export const cancelInvoiceService = async (id) => {
   );
 };
 
-export const getInvoicesWithPageNumber = async (page, limit) => {
+export const getInvoicesWithPageNumber = async (page, limit, userId) => {
   const skip = (page - 1) * limit;
   const [invoices, total] = await Promise.all([
-    InvoiceModel.find({})
+    InvoiceModel.find({ userId: userId })
       .sort({ createdAt: -1 }) // 🔥 latest first
       .skip(skip)
       .limit(limit)
       .lean(),
 
-    InvoiceModel.countDocuments(),
+    InvoiceModel.countDocuments({userId: userId}),
   ]);
 
   return {
@@ -173,4 +181,64 @@ export const getInvoicesWithPageNumber = async (page, limit) => {
     page,
     limit,
   };
+};
+
+export const getInvoicesForDownload = async (fy, month, userId) => {
+  const year = resolveMonthYear(fy, month);
+  const { start, end } = getMonthRange(year, month);
+
+  console.log(year, start, end, userId);
+
+  return await InvoiceModel.find({
+    userId,
+    createdAt: { $gte: start, $lte: end },
+    status: { $ne: "CANCELLED" },
+  })
+    .sort({ createdAt: 1 })
+    .lean();
+};
+
+export const downloadInvoicesService = async ({ fy, month, userId, res }) => {
+  const invoices = await getInvoicesForDownload(fy, month, userId);
+  if (invoices.length === 0) {
+    return res.status(404).json({
+      message: "No invoices found for selected period",
+    });
+  }
+  const monthName = new Date(0, month - 1).toLocaleString("en", {
+    month: "short",
+  });
+  const zipName = `invoices-${fy}-${monthName}.zip`;
+
+  res.setHeader("Content-Type", "application/zip");
+  res.setHeader("Content-Disposition", `attachment; filename="${zipName}"`);
+
+  const archive = archiver("zip", { zlib: { level: 9 } });
+  archive.on("error", (err) => {
+    console.error("Archive error:", err);
+    if (!res.headersSent)
+      res.status(500).json({ message: "Failed to create zip" });
+  });
+  archive.pipe(res);
+
+  for (const inv of invoices) {
+    if (!inv.filePath) {
+      console.warn(`No filePath: ${inv.invoiceNumber}`);
+      continue;
+    }
+
+    // ── This is the critical line ──
+    const fullPath = path.join(process.cwd(), "src", "public", inv.filePath);
+    console.log(
+      `Invoice ${inv.invoiceNumber} → ${fullPath} | exists: ${fs.existsSync(fullPath)}`,
+    );
+
+    if (fs.existsSync(fullPath)) {
+      archive.file(fullPath, { name: `invoice-${inv.invoiceNumber}.pdf` });
+    } else {
+      console.warn(`Missing PDF: ${fullPath}`);
+    }
+  }
+
+  await archive.finalize();
 };

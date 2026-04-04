@@ -2,6 +2,7 @@ import InvoiceModel from "../model/invoice.model.js";
 import { errorResponse, successResponse } from "../response/response.js";
 import {
   cancelInvoiceService,
+  downloadInvoicesService,
   getInvoicesWithPageNumber,
   saveInvoiceInDB,
   updateInvoiceFilePath,
@@ -48,8 +49,9 @@ export const getInvoices = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
+    const userId = req.user.userId;
 
-    const result = await getInvoicesWithPageNumber(page, limit);
+    const result = await getInvoicesWithPageNumber(page, limit, userId);
 
     res.status(200).json(result);
   } catch (error) {
@@ -76,6 +78,30 @@ export const cancelInvoice = async (req, res) => {
     return errorResponse(res, 500, "Unable to cancel invoice", {
       error: err,
       message: err.message,
+    });
+  }
+};
+
+export const downloadInvoices = async (req, res) => {
+  try {
+    const { fy, month } = req.query;
+    const userId = req.user.userId;
+
+    if (!fy || !month) {
+      return res.status(400).json({
+        message: "FY and month are required",
+      });
+    }
+    await downloadInvoicesService({
+      fy,
+      month: Number(month),
+      userId,
+      res,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to download invoices",
+      error: error.message,
     });
   }
 };

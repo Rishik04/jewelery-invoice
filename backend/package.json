@@ -11,6 +11,7 @@
   "author": "Rishik",
   "license": "ISC",
   "dependencies": {
+    "archiver": "^7.0.1",
     "bcryptjs": "^3.0.3",
     "body-parser": "^2.2.0",
     "company": "file:",
