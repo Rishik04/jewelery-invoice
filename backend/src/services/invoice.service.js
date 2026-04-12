@@ -172,7 +172,7 @@ export const getInvoicesWithPageNumber = async (page, limit, userId) => {
       .limit(limit)
       .lean(),
 
-    InvoiceModel.countDocuments({userId: userId}),
+    InvoiceModel.countDocuments({ userId: userId }),
   ]);
 
   return {
@@ -241,4 +241,16 @@ export const downloadInvoicesService = async ({ fy, month, userId, res }) => {
   }
 
   await archive.finalize();
+};
+
+export const getInvoicesByIdService = async (id, userId) => {
+  logger.info("Fetching invoice by id " + id);
+  const invoice = await InvoiceModel.findOne({
+    _id: id,
+    userId: userId,
+  }).select("filePath");
+  if (!invoice) {
+    throw new Error("Invoice not found or unauthorized");
+  }
+  return invoice;
 };
