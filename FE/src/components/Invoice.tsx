@@ -23,6 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import API from "@/lib/api";
 
 const MONTHS = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -52,10 +53,12 @@ const DEFAULT_FY = FY_OPTIONS[0].value;
 const InvoicePage = () => {
   const cancelMutation = useCancelInvoice();
   const [selectedInvoice, setSelectedInvoice] = useState<string | null>(null);
+  const [category, setCategory] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const limit = 10;
 
   const { data: invoiceData, isLoading: loading, error } = useInvoices(page, limit);
+  // const invoiceById = useInvoiceById(selectedInvoice);
   const invoices = invoiceData?.data || [];
   const total = invoiceData?.total || 0;
   const totalPages = Math.ceil(total / limit);
@@ -63,7 +66,7 @@ const InvoicePage = () => {
   const [fy, setFy] = useState(DEFAULT_FY);
   const [month, setMonth] = useState(String(new Date().getMonth() + 1));
 
-  const handleCancel = (id: string) => setSelectedInvoice(id);
+  const handleCancel = (id: string) => { setSelectedInvoice(id); setCategory("CANCEL") }
   const bulkDownloadMutation = useBulkDownloadInvoices();
 
   const handleBulkDownload = () => {
@@ -78,6 +81,55 @@ const InvoicePage = () => {
         setPage((prev) => (prev > 1 ? prev - 1 : prev));
       },
     });
+  };
+
+  const handleInvoiceById = async (id: string) => {
+    try {
+      const res = await API.get(`/invoice/${id}/view`, {
+        responseType: "blob",
+      });
+
+      const url = window.URL.createObjectURL(res.data);
+      window.open(url, "_blank");
+
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch (err) {
+      console.error("Failed to open invoice", err);
+    }
+  };
+
+  //   useEffect(() => {
+  //   if (invoiceById) {
+  //     // window.open(invoiceById.fileUrl, "_blank");
+  //     window.open(invoiceById.data, "_blank")
+  //     console.log(invoiceById)
+  //   }
+  // }, [invoiceById]);
+
+  const handleDownload = async (id: string) => {
+    try {
+      const res = await API.get(`/invoice/${id}/view`, {
+        responseType: "blob",
+      });
+
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+
+      // create temporary link
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `invoice-${id}.pdf`;
+      document.body.appendChild(link);
+
+      link.click();
+
+      // cleanup
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+    } catch (err) {
+      console.error("Download failed", err);
+    }
   };
 
   return (
@@ -218,14 +270,21 @@ const InvoicePage = () => {
                           <TableCell>
                             <div className="flex items-center gap-3">
                               {inv.filePath && inv.status !== "CANCELLED" && (
-                                <a
-                                  href={`${import.meta.env.VITE_API_BASE_URL}/${inv.filePath}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
+                                <button
+                                  // href={`${import.meta.env.VITE_API_BASE_URL}/${inv.filePath}`}
+                                  onClick={() => handleInvoiceById(inv._id)}
+                                  className="text-sm text-blue-600 font-medium hover:underline underline-offset-2"
+                                >
+                                  View
+                                </button>
+                              )}
+                              {inv.status !== "CANCELLED" && (
+                                <button
+                                  onClick={() => handleDownload(inv._id)}
                                   className="text-sm text-blue-600 font-medium hover:underline underline-offset-2"
                                 >
                                   Download
-                                </a>
+                                </button>
                               )}
                               {inv.status !== "CANCELLED" && (
                                 <button
@@ -329,7 +388,7 @@ const InvoicePage = () => {
       </div>
 
       <ConfirmDialog
-        open={!!selectedInvoice}
+        open={!!selectedInvoice && category === "CANCEL"}
         onClose={() => setSelectedInvoice(null)}
         onConfirm={confirmCancel}
         loading={cancelMutation.isPending}

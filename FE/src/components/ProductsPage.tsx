@@ -1,3 +1,21 @@
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   useCreateProduct,
   useDeleteProduct,
@@ -8,7 +26,6 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
-  ChevronDown,
   Gem,
   Hash,
   Package,
@@ -17,7 +34,7 @@ import {
   Sparkles,
   Tag,
   Trash2,
-  X
+  X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -25,46 +42,23 @@ import { useEffect, useMemo, useState } from "react";
 
 const CATEGORIES = ["GOLD", "SILVER"] as const;
 const KARATS = ["18K", "22K", "24K"] as const;
+const HSN_CODE = "7113";
 
 const PRODUCT_TYPES = [
-  "Ring",
-  "Necklace",
-  "Bangle",
-  "Bracelet",
-  "Earring",
-  "Pendant",
-  "Chain",
-  "Anklet",
-  "Mangalsutra",
-  "Nose Pin",
-  "Coin",
-  "Bar",
-  "Other",
+  "Ring", "Necklace", "Bangle", "Bracelet", "Earring",
+  "Pendant", "Chain", "Anklet", "Mangalsutra", "Nose Pin",
+  "Coin", "Bar", "Other",
 ] as const;
 
-const HSN_MAP: Record<string, string> = {
-  GOLD: "7113",
-  SILVER: "7113",
-};
-
-const CATEGORY_META: Record<
-  string,
-  {
-    icon: React.FC<any>;
-    gradient: string;
-    bg: string;
-    label: string;
-    accent: string;
-    softBorder: string;
-  }
-> = {
+const CATEGORY_META = {
   GOLD: {
     icon: Sparkles,
     gradient: "from-amber-400 to-yellow-500",
     bg: "from-amber-50 to-yellow-50",
     label: "Gold",
     accent: "text-amber-600",
-    softBorder: "border-amber-200/60",
+    border: "border-amber-200",
+    badge: "bg-amber-100 text-amber-700",
   },
   SILVER: {
     icon: Gem,
@@ -72,9 +66,28 @@ const CATEGORY_META: Record<
     bg: "from-slate-50 to-gray-100",
     label: "Silver",
     accent: "text-slate-600",
-    softBorder: "border-slate-200/60",
+    border: "border-slate-200",
+    badge: "bg-slate-100 text-slate-700",
   },
-};
+} as const;
+
+// ─── Empty form state ─────────────────────────────────────────────────────────
+
+const emptyForm = () => ({
+  name: "",
+  type: "" as string,
+  customType: "",
+  category: "GOLD" as Product["category"],
+  karat: "22K" as Product["karat"],
+});
+
+const formFromProduct = (p: Product) => ({
+  name: p.name,
+  type: PRODUCT_TYPES.includes(p.type as any) ? p.type : "Other",
+  customType: PRODUCT_TYPES.includes(p.type as any) ? "" : p.type,
+  category: p.category,
+  karat: p.karat ?? "22K",
+});
 
 // ─── Product Card ─────────────────────────────────────────────────────────────
 
@@ -82,143 +95,126 @@ const ProductCard = ({
   product,
   index,
   onDelete,
-  onEdit
+  onEdit,
 }: {
   product: Product;
   index: number;
   onDelete: (id: string) => void;
-  onEdit: (product: Product) => void;
+  onEdit: (p: Product) => void;
 }) => {
-  const meta = CATEGORY_META[product.category];
+  const meta = CATEGORY_META[product.category as keyof typeof CATEGORY_META];
   const Icon = meta.icon;
 
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 24 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.96 }}
-      transition={{ delay: index * 0.04, duration: 0.3 }}
-      whileHover={{ y: -4 }}
-      className="group relative h-full rounded-2xl border border-white/60 bg-white/90 shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-xl"
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ delay: index * 0.04, duration: 0.25 }}
+      whileHover={{ y: -3 }}
+      className="group relative rounded-2xl border border-white/60 bg-white shadow-sm transition-shadow duration-300 hover:shadow-lg"
     >
-      <div className={`h-1.5 w-full rounded-t-2xl bg-gradient-to-r ${meta.gradient}`} />
+      {/* Category bar */}
+      <div className={`h-1 w-full rounded-t-2xl bg-gradient-to-r ${meta.gradient}`} />
 
-      <div className="flex h-[calc(100%-6px)] flex-col p-4 sm:p-5">
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${meta.gradient} shadow-md`}
-          >
-            <Icon size={20} className="text-white" />
+      <div className="flex flex-col p-4">
+        {/* Top row */}
+        <div className="mb-3 flex items-start justify-between gap-2">
+          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${meta.gradient} shadow-sm`}>
+            <Icon size={18} className="text-white" />
           </div>
 
-          <motion.button
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.94 }}
-            onClick={() => onDelete(product._id!)}
-            className="rounded-lg p-1.5 text-gray-300 transition-all hover:bg-red-50 hover:text-red-500 sm:opacity-0 sm:group-hover:opacity-100"
-          >
-            <Trash2 size={15} />
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.94 }}
-            onClick={() => onEdit(product)}
-            className="rounded-lg p-1.5 text-gray-300 transition-all hover:bg-blue-50 hover:text-blue-500 sm:opacity-0 sm:group-hover:opacity-100"
-          >
-            ✏️
-          </motion.button>
+          {/* Actions — visible on hover (desktop), always visible mobile */}
+          <div className="flex gap-1 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
+            <button
+              onClick={() => onEdit(product)}
+              className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-blue-50 hover:text-blue-500"
+              title="Edit"
+            >
+              <Tag size={14} />
+            </button>
+            <button
+              onClick={() => onDelete(product._id!)}
+              className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500"
+              title="Delete"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
         </div>
 
-        <div className="min-w-0 flex-1">
-          <h3 className="mb-1 truncate text-base font-bold text-gray-900 sm:text-lg">
-            {product.name}
-          </h3>
-          <p className="mb-4 line-clamp-1 text-sm text-gray-500">{product.type}</p>
+        {/* Content */}
+        <h3 className="mb-0.5 truncate text-sm font-bold text-gray-900">{product.name}</h3>
+        <p className="mb-3 truncate text-xs text-gray-500">{product.type}</p>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <span
-                className={`inline-flex max-w-full items-center rounded-full border border-current/10 bg-gradient-to-r px-2.5 py-1 text-xs font-semibold ${meta.bg} ${meta.accent}`}
-              >
-                {meta.label}
-              </span>
-
-              {product.karat && (
-                <span className="rounded-md bg-gray-100 px-2 py-0.5 text-xs font-bold text-gray-500">
-                  {product.karat}
-                </span>
-              )}
-            </div>
-
-            {product.hsnNumber && (
-              <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                <Hash size={11} />
-                <span>HSN {product.hsnNumber}</span>
-              </div>
-            )}
-          </div>
+        {/* Tags */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${meta.badge}`}>
+            {meta.label}
+          </span>
+          {product.karat && (
+            <span className="rounded-md bg-gray-100 px-2 py-0.5 text-xs font-bold text-gray-500">
+              {product.karat}
+            </span>
+          )}
+          {product.hsnNumber && (
+            <span className="flex items-center gap-1 text-[11px] text-gray-400">
+              <Hash size={10} /> {product.hsnNumber}
+            </span>
+          )}
         </div>
       </div>
     </motion.div>
   );
 };
 
-// ─── Add Product Form ─────────────────────────────────────────────────────────
+// ─── Add / Edit Panel ─────────────────────────────────────────────────────────
 
-const AddProductPanel = ({
+const ProductPanel = ({
   open,
   onClose,
-  product
+  product,
 }: {
   open: boolean;
   onClose: () => void;
-  product?: Product | null;
+  product: Product | null;
 }) => {
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
 
-  useEffect(() => {
-    if (product) {
-      setForm({
-        name: product.name || "",
-        type: PRODUCT_TYPES.includes(product.type as any)
-          ? product.type
-          : "Other",
-        customType: PRODUCT_TYPES.includes(product.type as any)
-          ? ""
-          : product.type || "",
-        category: product.category,
-        karat: product.karat || "22K",
-      });
-    }
-  }, [product]);
+  const isEditing = !!product?._id;
+  const isPending = createProduct.isPending || updateProduct.isPending;
 
-  const [form, setForm] = useState({
-    name: "",
-    type: "",
-    customType: "",
-    category: "GOLD" as Product["category"],
-    karat: "22K" as Product["karat"],
-  });
-
+  const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Reset form whenever the panel opens
+
+
+  useEffect(() => {
+    const handleOpenChange = (o: boolean) => {
+      if (o) {
+        setForm(product ? formFromProduct(product) : emptyForm());
+        setErrors({});
+      } else {
+        onClose();
+      }
+    };
+    handleOpenChange(open);
+  }, [open])
+
   const set = (field: string, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-    setErrors((prev) => ({ ...prev, [field]: "" }));
+    setForm((p) => ({ ...p, [field]: value }));
+    setErrors((p) => ({ ...p, [field]: "" }));
   };
 
   const validate = () => {
     const e: Record<string, string> = {};
-
     if (!form.name.trim()) e.name = "Product name is required";
-    if (!form.type && !form.customType.trim()) e.type = "Product type is required";
-    if (form.type === "Other" && !form.customType.trim()) {
-      e.type = "Custom product type is required";
-    }
+    if (!form.type) e.type = "Product type is required";
+    if (form.type === "Other" && !form.customType.trim()) e.type = "Custom type is required";
     if (form.category === "GOLD" && !form.karat) e.karat = "Karat is required for gold";
-
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -226,40 +222,31 @@ const AddProductPanel = ({
   const handleSubmit = async () => {
     if (!validate()) return;
 
-    const productType =
-      form.type === "Other"
-        ? form.customType.trim()
-        : form.type || form.customType.trim();
-
     const payload = {
       name: form.name.trim(),
-      type: productType,
+      type: form.type === "Other" ? form.customType.trim() : form.type,
       category: form.category,
       karat: form.category === "GOLD" ? form.karat : undefined,
     };
 
     try {
-      if (product?._id) {
-        await updateProduct.mutateAsync({
-          ...payload,
-          productId: product._id,
-        });
+      if (isEditing) {
+        await updateProduct.mutateAsync({ ...payload, productId: product!._id! });
       } else {
         await createProduct.mutateAsync(payload);
       }
-
       onClose();
-    } catch (err) {
-      console.error(err);
-    }
+    } catch { /* errors shown inline */ }
   };
 
   const meta = CATEGORY_META[form.category];
+  const apiError = (createProduct.error || updateProduct.error) as any;
 
   return (
     <AnimatePresence>
       {open && (
         <>
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -268,6 +255,7 @@ const AddProductPanel = ({
             className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
           />
 
+          {/* Panel */}
           <motion.div
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
@@ -275,231 +263,161 @@ const AddProductPanel = ({
             transition={{ type: "spring", damping: 28, stiffness: 280 }}
             className="fixed right-0 top-0 z-50 flex h-full w-full flex-col bg-white shadow-2xl sm:max-w-md"
           >
-            <div className={`bg-gradient-to-r ${meta.gradient} p-5 text-white sm:p-6`}>
-              <div className="mb-1 flex items-center justify-between gap-3">
-                <h2 className="text-lg font-bold sm:text-xl">
-                  {product ? "Edit Product" : "Add Product"}
-                </h2>
-                <motion.button
-                  whileHover={{ scale: 1.08, rotate: 90 }}
-                  whileTap={{ scale: 0.94 }}
+            {/* Panel header */}
+            <div className={`bg-gradient-to-r ${meta.gradient} p-5 text-white`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold">{isEditing ? "Edit Product" : "Add Product"}</h2>
+                  <p className="mt-0.5 text-sm text-white/80">
+                    {isEditing ? "Update product details" : "Add a new item to your catalog"}
+                  </p>
+                </div>
+                <button
                   onClick={onClose}
                   className="rounded-lg bg-white/20 p-1.5 transition-colors hover:bg-white/30"
                 >
                   <X size={18} />
-                </motion.button>
+                </button>
               </div>
-              <p className="text-sm text-white/80">
-                Add a new jewellery product to your catalog
-              </p>
             </div>
 
-            <div className="flex-1 space-y-6 overflow-y-auto p-4 sm:p-6">
-              <div>
-                <label className="mb-3 block text-sm font-semibold text-gray-700">
-                  Category
-                </label>
+            {/* Fields */}
+            <div className="flex-1 space-y-5 overflow-y-auto p-5">
 
-                <div className="grid grid-cols-1 gap-3 xs:grid-cols-2 sm:grid-cols-2">
+              {/* Category */}
+              <div>
+                <Label className="mb-2 block">Category</Label>
+                <div className="grid grid-cols-2 gap-3">
                   {CATEGORIES.map((cat) => {
                     const m = CATEGORY_META[cat];
                     const CatIcon = m.icon;
                     const active = form.category === cat;
-
                     return (
-                      <motion.button
+                      <button
                         key={cat}
                         type="button"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
                         onClick={() => set("category", cat)}
-                        className={`relative flex items-center gap-3 rounded-xl border-2 p-3.5 text-left transition-all ${active
-                          ? `bg-gradient-to-r ${m.bg} shadow-md border-transparent`
-                          : "border-gray-200 bg-white hover:border-gray-300"
+                        className={`flex items-center gap-3 rounded-xl border-2 p-3 text-left transition-all ${active
+                          ? `bg-gradient-to-r ${m.bg} border-transparent shadow-sm`
+                          : "border-gray-200 hover:border-gray-300"
                           }`}
                       >
-                        <div
-                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${m.gradient}`}
-                        >
-                          <CatIcon size={15} className="text-white" />
+                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${m.gradient}`}>
+                          <CatIcon size={14} className="text-white" />
                         </div>
-
-                        <div className="min-w-0">
-                          <p
-                            className={`text-sm font-bold ${active ? m.accent : "text-gray-700"
-                              }`}
-                          >
-                            {m.label}
-                          </p>
-                          <p className="text-xs text-gray-400">HSN {HSN_MAP[cat]}</p>
+                        <div>
+                          <p className={`text-sm font-bold ${active ? m.accent : "text-gray-700"}`}>{m.label}</p>
+                          <p className="text-xs text-gray-400">HSN {HSN_CODE}</p>
                         </div>
-
-                        {active && (
-                          <motion.div
-                            layoutId="cat-check"
-                            className={`absolute right-2 top-2 h-2 w-2 rounded-full bg-gradient-to-br ${m.gradient}`}
-                          />
-                        )}
-                      </motion.button>
+                      </button>
                     );
                   })}
                 </div>
               </div>
 
-              <div>
-                <label className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-gray-700">
-                  <Tag size={14} /> Product Name <span className="text-red-400">*</span>
-                </label>
-
-                <input
+              {/* Name */}
+              <div className="space-y-1.5">
+                <Label htmlFor="name">Product Name <span className="text-red-400">*</span></Label>
+                <Input
+                  id="name"
                   value={form.name}
                   onChange={(e) => set("name", e.target.value)}
                   placeholder="e.g. Ladies Diamond Solitaire Ring"
-                  className={`w-full rounded-xl border-2 px-4 py-3 text-sm font-medium outline-none transition-all ${errors.name
-                    ? "border-red-300 bg-red-50/50"
-                    : "border-gray-200 bg-gray-50/80 hover:border-gray-300 focus:border-blue-400 focus:bg-white"
-                    }`}
+                  className={errors.name ? "border-red-300 focus-visible:ring-red-300" : ""}
                 />
-
-                {errors.name && (
-                  <p className="mt-1.5 flex items-center gap-1 text-xs text-red-500">
-                    <AlertTriangle size={12} />
-                    {errors.name}
-                  </p>
-                )}
+                {errors.name && <p className="flex items-center gap-1 text-xs text-red-500"><AlertTriangle size={11} />{errors.name}</p>}
               </div>
 
-              <div>
-                <label className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-gray-700">
-                  <Package size={14} /> Type <span className="text-red-400">*</span>
-                </label>
-
-                <div className="relative">
-                  <select
-                    value={form.type}
-                    onChange={(e) => set("type", e.target.value)}
-                    className={`w-full appearance-none rounded-xl border-2 px-4 py-3 text-sm font-medium outline-none transition-all ${errors.type
-                      ? "border-red-300 bg-red-50/50"
-                      : "border-gray-200 bg-gray-50/80 hover:border-gray-300 focus:border-blue-400"
-                      }`}
-                  >
-                    <option value="">Select type…</option>
+              {/* Type */}
+              <div className="space-y-1.5">
+                <Label>Type <span className="text-red-400">*</span></Label>
+                <Select value={form.type} onValueChange={(v) => set("type", v)}>
+                  <SelectTrigger className={errors.type ? "border-red-300" : ""}>
+                    <SelectValue placeholder="Select type…" />
+                  </SelectTrigger>
+                  <SelectContent>
                     {PRODUCT_TYPES.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
                     ))}
-                  </select>
-
-                  <ChevronDown
-                    size={16}
-                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  />
-                </div>
+                  </SelectContent>
+                </Select>
 
                 {form.type === "Other" && (
-                  <motion.input
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
+                  <Input
                     value={form.customType}
                     onChange={(e) => set("customType", e.target.value)}
                     placeholder="Enter custom type…"
-                    className="mt-2 w-full rounded-xl border-2 border-gray-200 bg-gray-50/80 px-4 py-3 text-sm font-medium outline-none focus:border-blue-400"
+                    className="mt-2"
                   />
                 )}
-
-                {errors.type && (
-                  <p className="mt-1.5 flex items-center gap-1 text-xs text-red-500">
-                    <AlertTriangle size={12} />
-                    {errors.type}
-                  </p>
-                )}
+                {errors.type && <p className="flex items-center gap-1 text-xs text-red-500"><AlertTriangle size={11} />{errors.type}</p>}
               </div>
 
+              {/* Karat — gold only */}
               <AnimatePresence>
                 {form.category === "GOLD" && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.25 }}
-                    className="overflow-hidden"
+                    className="overflow-hidden space-y-1.5"
                   >
-                    <label className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-gray-700">
-                      <Sparkles size={14} /> Karat <span className="text-red-400">*</span>
-                    </label>
-
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <Label>Karat <span className="text-red-400">*</span></Label>
+                    <div className="grid grid-cols-3 gap-2">
                       {KARATS.map((k) => (
-                        <motion.button
+                        <button
                           key={k}
                           type="button"
-                          whileHover={{ scale: 1.04 }}
-                          whileTap={{ scale: 0.96 }}
                           onClick={() => set("karat", k)}
                           className={`rounded-xl border-2 py-2.5 text-sm font-bold transition-all ${form.karat === k
-                            ? "border-amber-400 bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 shadow-sm"
+                            ? "border-amber-400 bg-amber-50 text-amber-700"
                             : "border-gray-200 text-gray-500 hover:border-gray-300"
                             }`}
                         >
                           {k}
-                        </motion.button>
+                        </button>
                       ))}
                     </div>
-
-                    {errors.karat && (
-                      <p className="mt-1.5 flex items-center gap-1 text-xs text-red-500">
-                        <AlertTriangle size={12} />
-                        {errors.karat}
-                      </p>
-                    )}
+                    {errors.karat && <p className="flex items-center gap-1 text-xs text-red-500"><AlertTriangle size={11} />{errors.karat}</p>}
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              <div
-                className={`rounded-xl border ${meta.softBorder} bg-gradient-to-r ${meta.bg} p-4`}
-              >
-                <p className="mb-1 text-xs font-semibold text-gray-500">
-                  Auto-assigned HSN Code
-                </p>
-                <p className={`font-mono text-2xl font-bold ${meta.accent}`}>
-                  {HSN_MAP[form.category]}
-                </p>
-                <p className="mt-0.5 text-xs text-gray-400">
-                  Set automatically based on category
-                </p>
+              {/* HSN preview */}
+              <div className={`rounded-xl border ${meta.border} bg-gradient-to-r ${meta.bg} p-4`}>
+                <p className="mb-1 text-xs font-semibold text-gray-500">Auto-assigned HSN Code</p>
+                <p className={`font-mono text-2xl font-black ${meta.accent}`}>{HSN_CODE}</p>
+                <p className="mt-0.5 text-xs text-gray-400">Set automatically based on category</p>
               </div>
 
-              {createProduct.error && (
+              {/* API error */}
+              {apiError && (
                 <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
                   <AlertTriangle size={14} />
-                  {(createProduct.error as any)?.response?.data?.message ||
-                    "Failed to add product"}
+                  {apiError?.response?.data?.message || "Something went wrong"}
                 </div>
               )}
             </div>
 
-            <div className="border-t border-gray-100 p-4 sm:p-6">
-              <motion.button
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
+            {/* Submit */}
+            <div className="border-t p-5">
+              <Button
                 onClick={handleSubmit}
-                disabled={createProduct.isPending}
-                className={`flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r ${meta.gradient} py-4 font-bold text-white shadow-lg transition-all duration-300 hover:shadow-xl disabled:opacity-60`}
+                disabled={isPending}
+                className={`w-full bg-gradient-to-r ${meta.gradient} hover:opacity-90 border-0 py-5 font-bold text-white shadow-md`}
               >
-                {createProduct.isPending ? (
-                  <>
-                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Adding Product…
-                  </>
+                {isPending ? (
+                  <span className="flex items-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    {isEditing ? "Updating…" : "Adding…"}
+                  </span>
                 ) : (
-                  <>
-                    <Plus size={20} />
-                    {product ? "Update Product" : "Add to Catalog"}
-                  </>
+                  <span className="flex items-center gap-2">
+                    <Plus size={18} />
+                    {isEditing ? "Update Product" : "Add to Catalog"}
+                  </span>
                 )}
-              </motion.button>
+              </Button>
             </div>
           </motion.div>
         </>
@@ -508,7 +426,7 @@ const AddProductPanel = ({
   );
 };
 
-// ─── Delete Dialog ────────────────────────────────────────────────────────────
+// ─── Delete Dialog ─────────────────────────────────────────────────────────────
 
 const DeleteDialog = ({
   product,
@@ -521,120 +439,87 @@ const DeleteDialog = ({
   onCancel: () => void;
   isLoading: boolean;
 }) => (
-  <AnimatePresence>
-    {product && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.92 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.92 }}
-          className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl sm:p-6"
-        >
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-100">
-            <Trash2 size={26} className="text-red-500" />
-          </div>
-
-          <h3 className="mb-1 text-center text-lg font-bold text-gray-900">
-            Remove Product?
-          </h3>
-
-          <p className="mb-6 text-center text-sm text-gray-500">
-            <span className="font-semibold text-gray-800">{product.name}</span> will
-            be permanently deleted.
-          </p>
-
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <button
-              onClick={onCancel}
-              className="flex-1 rounded-xl bg-gray-100 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-200"
-            >
-              Cancel
-            </button>
-
-            <button
-              onClick={onConfirm}
-              disabled={isLoading}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-500 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-600 disabled:opacity-60"
-            >
-              {isLoading ? (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              ) : null}
-              Delete
-            </button>
-          </div>
-        </motion.div>
-      </div>
-    )}
-  </AnimatePresence>
+  <Dialog open={!!product} onOpenChange={(o) => { if (!o) onCancel(); }}>
+    <DialogContent className="sm:max-w-sm">
+      <DialogHeader>
+        <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+          <Trash2 size={22} className="text-red-500" />
+        </div>
+        <DialogTitle className="text-center">Remove Product?</DialogTitle>
+        <p className="text-center text-sm text-muted-foreground">
+          <span className="font-semibold text-gray-800">{product?.name}</span> will be permanently deleted.
+        </p>
+      </DialogHeader>
+      <DialogFooter className="flex-row gap-3 sm:gap-3">
+        <Button variant="outline" className="flex-1" onClick={onCancel} disabled={isLoading}>
+          Cancel
+        </Button>
+        <Button variant="destructive" className="flex-1" onClick={onConfirm} disabled={isLoading}>
+          {isLoading ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> : "Delete"}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 );
 
 // ─── Stats Bar ────────────────────────────────────────────────────────────────
 
-const StatsBar = ({ products }: { products: Product[] }) => {
-  const counts = CATEGORIES.reduce((acc, c) => {
-    acc[c] = products.filter((p) => p.category === c).length;
-    return acc;
-  }, {} as Record<string, number>);
-
-  return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {CATEGORIES.map((cat, i) => {
-        const meta = CATEGORY_META[cat];
-        const Icon = meta.icon;
-
-        return (
-          <motion.div
-            key={cat}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.06 }}
-            className={`rounded-2xl border ${meta.softBorder} bg-gradient-to-br ${meta.bg} p-4 shadow-sm`}
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <div
-                className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${meta.gradient} shadow`}
-              >
-                <Icon size={16} className="text-white" />
-              </div>
-              <span className={`text-2xl font-black ${meta.accent}`}>
-                {counts[cat]}
-              </span>
+const StatsBar = ({ products }: { products: Product[] }) => (
+  <div className="grid grid-cols-2 gap-4">
+    {CATEGORIES.map((cat, i) => {
+      const meta = CATEGORY_META[cat];
+      const Icon = meta.icon;
+      const count = products.filter((p) => p.category === cat).length;
+      return (
+        <motion.div
+          key={cat}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: i * 0.06 }}
+          className={`rounded-2xl border ${meta.border} bg-gradient-to-br ${meta.bg} p-4 shadow-sm`}
+        >
+          <div className="mb-2 flex items-center justify-between">
+            <div className={`flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br ${meta.gradient} shadow-sm`}>
+              <Icon size={16} className="text-white" />
             </div>
-
-            <p className="text-sm font-semibold text-gray-600">{meta.label}</p>
-          </motion.div>
-        );
-      })}
-    </div>
-  );
-};
+            <span className={`text-2xl font-black ${meta.accent}`}>{count}</span>
+          </div>
+          <p className="text-sm font-semibold text-gray-600">{meta.label} Products</p>
+        </motion.div>
+      );
+    })}
+  </div>
+);
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 const ProductsPage = () => {
   const { data: products = [], isLoading, error } = useProducts();
   const deleteProduct = useDeleteProduct();
+
   const [panelOpen, setPanelOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [toDelete, setToDelete] = useState<Product | null>(null);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("ALL");
-  const [toDelete, setToDelete] = useState<Product | null>(null);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  const filtered = useMemo(() => {
-    return products.filter((p) => {
+  const filtered = useMemo(() =>
+    products.filter((p) => {
       const matchCat = activeCategory === "ALL" || p.category === activeCategory;
       const q = search.trim().toLowerCase();
-
-      const matchSearch =
-        !q ||
+      const matchSearch = !q ||
         p.name.toLowerCase().includes(q) ||
         p.type.toLowerCase().includes(q) ||
         p.category.toLowerCase().includes(q) ||
         (p.karat?.toLowerCase().includes(q) ?? false);
-
       return matchCat && matchSearch;
-    });
-  }, [products, activeCategory, search]);
+    }),
+    [products, activeCategory, search]
+  );
+
+  const openAdd = () => { setEditingProduct(null); setPanelOpen(true); };
+  const openEdit = (p: Product) => { setEditingProduct(p); setPanelOpen(true); };
+  const closePanel = () => { setPanelOpen(false); setEditingProduct(null); };
 
   const handleDelete = async () => {
     if (!toDelete?._id) return;
@@ -643,171 +528,113 @@ const ProductsPage = () => {
   };
 
   return (
-    <div className="relative min-h-screen w-full overflow-x-hidden">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-blue-400/10 blur-3xl" />
-        <div className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-purple-400/10 blur-3xl" />
-      </div>
+    <div className="p-4 md:p-8 min-h-screen">
+      <div className="max-w-7xl mx-auto space-y-6">
 
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 mx-auto w-full max-w-7xl space-y-6 px-4 py-4 sm:space-y-8 sm:px-6 sm:py-6 lg:px-8"
-      >
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-black tracking-tight text-gray-900 sm:text-3xl">
-              Product Catalog
-            </h1>
-            <p className="mt-1 text-sm text-gray-500 sm:text-base">
-              {products.length} {products.length === 1 ? "product" : "products"} in
-              your catalog
+        {/* Page header */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Product Catalog</h1>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              {products.length} {products.length === 1 ? "product" : "products"} in your catalog
             </p>
           </div>
-
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setPanelOpen(true)}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-3 font-bold text-white shadow-lg transition-all duration-300 hover:shadow-xl sm:w-auto"
-          >
-            <Plus size={19} />
-            Add Product
-          </motion.button>
+          <Button onClick={openAdd} className="w-full sm:w-auto">
+            <Plus size={16} className="mr-2" /> Add Product
+          </Button>
         </div>
 
-        <StatsBar products={products} />
+        {/* Stats */}
+        {!isLoading && products.length > 0 && <StatsBar products={products} />}
 
-        <div className="rounded-2xl border border-white/40 bg-white/70 p-4 shadow-lg backdrop-blur-xl">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-            <div className="relative w-full flex-1">
-              <Search
-                size={16}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by name, type, category or karat…"
-                className="w-full rounded-xl border-2 border-gray-200 bg-gray-50/80 py-2.5 pl-10 pr-4 text-sm font-medium outline-none transition-all focus:border-blue-400 focus:bg-white"
-              />
-            </div>
-
-            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:mx-0 lg:px-0">
-              {["ALL", ...CATEGORIES].map((cat) => {
-                const meta = cat !== "ALL" ? CATEGORY_META[cat] : null;
-                const active = activeCategory === cat;
-
-                return (
-                  <motion.button
-                    key={cat}
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
-                    onClick={() => setActiveCategory(cat)}
-                    className={`flex-shrink-0 rounded-xl px-4 py-2 text-sm font-bold transition-all ${active
-                      ? meta
-                        ? `bg-gradient-to-r ${meta.gradient} text-white shadow-md`
-                        : "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
-                      : "text-gray-500 hover:bg-gray-100"
-                      }`}
-                  >
-                    {cat === "ALL" ? "All" : CATEGORY_META[cat].label}
-                  </motion.button>
-                );
-              })}
-            </div>
+        {/* Search + filter */}
+        <div className="flex flex-col gap-3 rounded-2xl border bg-white p-4 shadow-sm sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, type or karat…"
+              className="pl-9"
+            />
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-0.5 sm:pb-0">
+            {["ALL", ...CATEGORIES].map((cat) => {
+              const meta = cat !== "ALL" ? CATEGORY_META[cat as keyof typeof CATEGORY_META] : null;
+              const active = activeCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={`shrink-0 rounded-xl px-4 py-2 text-sm font-semibold transition-all ${active
+                    ? meta
+                      ? `bg-gradient-to-r ${meta.gradient} text-white shadow-sm`
+                      : "bg-indigo-600 text-white shadow-sm"
+                    : "text-gray-500 hover:bg-gray-100"
+                    }`}
+                >
+                  {cat === "ALL" ? "All" : CATEGORY_META[cat as keyof typeof CATEGORY_META].label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
+        {/* Content */}
         {isLoading ? (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {[...Array(8)].map((_, i) => (
-              <div
-                key={i}
-                className="rounded-2xl bg-white p-5 shadow-sm animate-pulse"
-              >
-                <div className="mb-4 h-1.5 rounded-full bg-gray-200" />
-                <div className="mb-4 h-11 w-11 rounded-xl bg-gray-200" />
-                <div className="mb-2 h-4 w-3/4 rounded bg-gray-200" />
-                <div className="h-3 w-1/2 rounded bg-gray-100" />
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="rounded-2xl border bg-white p-4 space-y-3">
+                <Skeleton className="h-1 w-full rounded-full" />
+                <Skeleton className="h-10 w-10 rounded-xl" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
               </div>
             ))}
           </div>
         ) : error ? (
           <div className="py-20 text-center">
-            <AlertTriangle size={48} className="mx-auto mb-4 text-red-400" />
-            <h3 className="mb-2 text-xl font-bold text-gray-800">
-              Failed to load products
-            </h3>
-            <p className="text-sm text-gray-500">
-              Check your connection and try again.
-            </p>
+            <AlertTriangle size={40} className="mx-auto mb-3 text-red-400" />
+            <h3 className="text-lg font-bold text-gray-800">Failed to load products</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Check your connection and try again.</p>
           </div>
         ) : filtered.length === 0 ? (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-20 text-center sm:py-24">
-            <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-blue-100 to-purple-100">
-              <Package size={36} className="text-blue-400" />
+          <div className="py-20 text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50">
+              <Package size={30} className="text-indigo-400" />
             </div>
-
-            <h3 className="mb-2 text-xl font-bold text-gray-800">
-              {search || activeCategory !== "ALL"
-                ? "No matching products"
-                : "No products yet"}
+            <h3 className="text-lg font-bold text-gray-800">
+              {search || activeCategory !== "ALL" ? "No matching products" : "No products yet"}
             </h3>
-
-            <p className="mb-6 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-muted-foreground">
               {search || activeCategory !== "ALL"
                 ? "Try adjusting your search or filter."
                 : "Add your first product to start building your catalog."}
             </p>
-
             {!search && activeCategory === "ALL" && (
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setPanelOpen(true)}
-                className="rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 font-bold text-white shadow-lg"
-              >
-                <span className="flex items-center gap-2">
-                  <Plus size={18} />
-                  Add First Product
-                </span>
-              </motion.button>
+              <Button onClick={openAdd} className="mt-4">
+                <Plus size={16} className="mr-2" /> Add First Product
+              </Button>
             )}
-          </motion.div>
+          </div>
         ) : (
-          <motion.div
-            layout
-            className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-          >
+          <motion.div layout className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <AnimatePresence>
               {filtered.map((p, i) => (
                 <ProductCard
                   key={p._id}
                   product={p}
                   index={i}
-                  onEdit={(product) => {
-                    setEditingProduct(product);
-                    setPanelOpen(true)
-                  }}
-                  onDelete={(id) =>
-                    setToDelete(products.find((x) => x._id === id) || null)
-                  }
+                  onEdit={openEdit}
+                  onDelete={(id) => setToDelete(products.find((x) => x._id === id) ?? null)}
                 />
               ))}
             </AnimatePresence>
           </motion.div>
         )}
-      </motion.div>
+      </div>
 
-      <AddProductPanel
-        open={panelOpen}
-        onClose={() => {
-          setPanelOpen(false);
-          setEditingProduct(null);
-        }}
-        product={editingProduct}
-      />
+      <ProductPanel open={panelOpen} onClose={closePanel} product={editingProduct} />
       <DeleteDialog
         product={toDelete}
         onConfirm={handleDelete}

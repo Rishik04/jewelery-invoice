@@ -3,6 +3,7 @@ import { errorResponse, successResponse } from "../response/response.js";
 import {
   cancelInvoiceService,
   downloadInvoicesService,
+  getInvoicesByIdService,
   getInvoicesWithPageNumber,
   saveInvoiceInDB,
   updateInvoiceFilePath,
@@ -10,6 +11,7 @@ import {
 import { createPDF } from "../services/pdf.service.js";
 import { logger } from "../utils/logger.js";
 import fs from "fs";
+import path from "path";
 
 export const generateInvoice = async (req, res) => {
   let filePath;
@@ -101,6 +103,33 @@ export const downloadInvoices = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: "Failed to download invoices",
+      error: error.message,
+    });
+  }
+};
+
+export const getInvoiceById = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const userId = req.user.userId;
+    const invoice = await getInvoicesByIdService(id, userId);
+
+    const filePath = path.join(process.cwd(), "src", "public", invoice.filePath);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ message: "File not found" });
+    }
+
+    res.setHeader("Content-Disposition", "inline");
+    res.sendFile(filePath);
+    res.setHeader("Content-Type", "application/pdf");
+
+  } catch (error) {
+    if (error.message.includes("not found")) {
+      return res.status(404).json({ message: error.message });
+    }
+    res.status(500).json({
+      message: "Failed to fetch invoice",
       error: error.message,
     });
   }

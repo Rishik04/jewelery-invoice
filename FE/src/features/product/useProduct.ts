@@ -4,8 +4,8 @@ import API from "@/lib/api";
 export interface Product {
   _id?: string;
   name: string;
-  type: string;        // e.g. "Ring", "Necklace", "Bangle"
-  category: "GOLD" | "SILVER" | "DIAMOND" | "PLATINUM";
+  type: string;
+  category: "GOLD" | "SILVER";
   karat?: "14K" | "18K" | "22K" | "24K";
   hsnNumber?: string;
   companyId?: string;
