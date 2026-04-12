@@ -331,15 +331,22 @@ const InvoicePage = () => {
 
                         <div className="flex gap-4 mt-3 text-xs font-medium">
                           {inv.filePath && inv.status !== "CANCELLED" && (
-                            <a
-                              href={`${import.meta.env.VITE_API_BASE_URL}/${inv.filePath}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline"
-                            >
-                              Download
-                            </a>
-                          )}
+                                <button
+                                  // href={`${import.meta.env.VITE_API_BASE_URL}/${inv.filePath}`}
+                                  onClick={() => handleInvoiceById(inv._id)}
+                                  className="text-sm text-blue-600 font-medium hover:underline underline-offset-2"
+                                >
+                                  View
+                                </button>
+                              )}
+                              {inv.status !== "CANCELLED" && (
+                                <button
+                                  onClick={() => handleDownload(inv._id)}
+                                  className="text-sm text-blue-600 font-medium hover:underline underline-offset-2"
+                                >
+                                  Download
+                                </button>
+                              )}
                           {inv.status !== "CANCELLED" && (
                             <button
                               onClick={() => handleCancel(inv._id)}
