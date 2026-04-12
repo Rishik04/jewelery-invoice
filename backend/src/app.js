@@ -29,10 +29,10 @@ app.use(helmet());
 app.use(compression());
 app.use(morgan("dev"));
 
-app.use(
-  "/invoices",
-  express.static(path.join(process.cwd(), "src/public/invoices"))
-);
+// app.use(
+//   "/invoices",
+//   express.static(path.join(process.cwd(), "src/public/invoices"))
+// );
 
 app.use("/api/auth", authRoutes);
 app.use("/api/company", companyRoutes);
