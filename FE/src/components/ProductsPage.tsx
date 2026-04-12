@@ -1,14 +1,13 @@
-import {
-  useCreateProduct,
-  useDeleteProduct,
-  useProducts,
-  useUpdateProduct,
-  type Product,
-} from "@/features/product/useProduct";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -16,14 +15,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+  useCreateProduct,
+  useDeleteProduct,
+  useProducts,
+  useUpdateProduct,
+  type Product,
+} from "@/features/product/useProduct";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
@@ -37,7 +36,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -103,7 +102,7 @@ const ProductCard = ({
   onDelete: (id: string) => void;
   onEdit: (p: Product) => void;
 }) => {
-  const meta = CATEGORY_META[product.category];
+  const meta = CATEGORY_META[product.category as keyof typeof CATEGORY_META];
   const Icon = meta.icon;
 
   return (
@@ -191,14 +190,20 @@ const ProductPanel = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Reset form whenever the panel opens
-  const handleOpenChange = (o: boolean) => {
-    if (o) {
-      setForm(product ? formFromProduct(product) : emptyForm());
-      setErrors({});
-    } else {
-      onClose();
-    }
-  };
+
+
+  useEffect(() => {
+    console.log("hit");
+    const handleOpenChange = (o: boolean) => {
+      if (o) {
+        setForm(product ? formFromProduct(product) : emptyForm());
+        setErrors({});
+      } else {
+        onClose();
+      }
+    };
+    handleOpenChange(open);
+  }, [open])
 
   const set = (field: string, value: string) => {
     setForm((p) => ({ ...p, [field]: value }));
@@ -293,11 +298,10 @@ const ProductPanel = ({
                         key={cat}
                         type="button"
                         onClick={() => set("category", cat)}
-                        className={`flex items-center gap-3 rounded-xl border-2 p-3 text-left transition-all ${
-                          active
-                            ? `bg-gradient-to-r ${m.bg} border-transparent shadow-sm`
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
+                        className={`flex items-center gap-3 rounded-xl border-2 p-3 text-left transition-all ${active
+                          ? `bg-gradient-to-r ${m.bg} border-transparent shadow-sm`
+                          : "border-gray-200 hover:border-gray-300"
+                          }`}
                       >
                         <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${m.gradient}`}>
                           <CatIcon size={14} className="text-white" />
@@ -366,11 +370,10 @@ const ProductPanel = ({
                           key={k}
                           type="button"
                           onClick={() => set("karat", k)}
-                          className={`rounded-xl border-2 py-2.5 text-sm font-bold transition-all ${
-                            form.karat === k
-                              ? "border-amber-400 bg-amber-50 text-amber-700"
-                              : "border-gray-200 text-gray-500 hover:border-gray-300"
-                          }`}
+                          className={`rounded-xl border-2 py-2.5 text-sm font-bold transition-all ${form.karat === k
+                            ? "border-amber-400 bg-amber-50 text-amber-700"
+                            : "border-gray-200 text-gray-500 hover:border-gray-300"
+                            }`}
                         >
                           {k}
                         </button>
@@ -564,13 +567,12 @@ const ProductsPage = () => {
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  className={`shrink-0 rounded-xl px-4 py-2 text-sm font-semibold transition-all ${
-                    active
-                      ? meta
-                        ? `bg-gradient-to-r ${meta.gradient} text-white shadow-sm`
-                        : "bg-indigo-600 text-white shadow-sm"
-                      : "text-gray-500 hover:bg-gray-100"
-                  }`}
+                  className={`shrink-0 rounded-xl px-4 py-2 text-sm font-semibold transition-all ${active
+                    ? meta
+                      ? `bg-gradient-to-r ${meta.gradient} text-white shadow-sm`
+                      : "bg-indigo-600 text-white shadow-sm"
+                    : "text-gray-500 hover:bg-gray-100"
+                    }`}
                 >
                   {cat === "ALL" ? "All" : CATEGORY_META[cat as keyof typeof CATEGORY_META].label}
                 </button>
