@@ -193,7 +193,6 @@ const ProductPanel = ({
 
 
   useEffect(() => {
-    console.log("hit");
     const handleOpenChange = (o: boolean) => {
       if (o) {
         setForm(product ? formFromProduct(product) : emptyForm());
