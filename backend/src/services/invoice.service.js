@@ -44,7 +44,6 @@ export const saveInvoiceInDB = async (userId, data) => {
   logger.info("Products count: " + products.length);
 
   const { items, customer } = data;
-  const invoiceNumber = await createInvoiceNumber(company._id);
   await createCustomerData(customer, company._id, userId);
 
   // Map submitted items to invoice items with product snapshots
@@ -95,6 +94,7 @@ export const saveInvoiceInDB = async (userId, data) => {
   const taxRate = 3; // 1.5% SGST + 1.5% CGST
   const tax = parseFloat(((subtotal * taxRate) / 100).toFixed(2));
   const totalAmount = parseFloat(otherChargesTotal + subtotal + tax).toFixed(2);
+  const invoiceNumber = await createInvoiceNumber(company._id);
 
   const updatedData = {
     ...data,
