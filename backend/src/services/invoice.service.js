@@ -167,7 +167,7 @@ export const getInvoicesWithPageNumber = async (page, limit, userId) => {
   const skip = (page - 1) * limit;
   const [invoices, total] = await Promise.all([
     InvoiceModel.find({ userId: userId })
-      .sort({ createdAt: -1 }) // 🔥 latest first
+      .sort({ invoiceNumber: -1 }) // 🔥 latest first
       .skip(skip)
       .limit(limit)
       .lean(),

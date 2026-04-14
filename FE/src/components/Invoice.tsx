@@ -233,7 +233,7 @@ const InvoicePage = () => {
             {/* ── Desktop Table ── */}
             {!loading && invoices.length > 0 && (
               <>
-                <div className="hidden md:block rounded-lg border overflow-hidden">
+                <div className="hidden md:block rounded-xl border overflow-hidden">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
@@ -244,58 +244,92 @@ const InvoicePage = () => {
                         ))}
                       </TableRow>
                     </TableHeader>
+
                     <TableBody>
                       {invoices.map((inv: any) => (
-                        <TableRow key={inv._id}>
-                          <TableCell className="font-medium">{inv.invoiceNumber}</TableCell>
-                          <TableCell>{inv.customer?.name || "—"}</TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {new Date(inv.createdAt).toLocaleDateString("en-IN")}
+                        <TableRow key={inv._id} className="hover:bg-muted/30 transition-colors">
+
+                          {/* Invoice नंबर */}
+                          <TableCell className="font-medium tracking-wide">
+                            {inv.invoiceNumber}
                           </TableCell>
-                          <TableCell className="font-semibold">
+
+                          {/* Customer (stacked, NOT inline) */}
+                          <TableCell>
+                            <div className="flex flex-col leading-tight max-w-[220px]">
+                              <span className="font-medium truncate">
+                                {inv.customer?.name || "—"}
+                              </span>
+                              {inv.customer?.address && (
+                                <span className="text-xs text-muted-foreground truncate">
+                                  {inv.customer.address}
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
+
+                          {/* Date */}
+                          <TableCell className="text-muted-foreground whitespace-nowrap">
+                            {new Date(inv.createdAt).toLocaleString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: true,
+                            })}
+                          </TableCell>
+
+                          {/* Amount (right aligned 💯 important) */}
+                          <TableCell className="font-semibold text-right">
                             ₹{inv.totalAmount?.toLocaleString("en-IN")}
                           </TableCell>
+
+                          {/* Status */}
                           <TableCell>
                             <Badge
-                              variant={inv.status === "CANCELLED" ? "destructive" : "default"}
                               className={
                                 inv.status === "CANCELLED"
-                                  ? "bg-red-100 text-red-600 hover:bg-red-100"
-                                  : "bg-green-100 text-green-700 hover:bg-green-100"
+                                  ? "bg-red-100 text-red-600"
+                                  : "bg-green-100 text-green-700"
                               }
                             >
                               {inv.status || "FINAL"}
                             </Badge>
                           </TableCell>
+
+                          {/* Actions */}
                           <TableCell>
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-4">
                               {inv.filePath && inv.status !== "CANCELLED" && (
                                 <button
-                                  // href={`${import.meta.env.VITE_API_BASE_URL}/${inv.filePath}`}
                                   onClick={() => handleInvoiceById(inv._id)}
-                                  className="text-sm text-blue-600 font-medium hover:underline underline-offset-2"
+                                  className="text-sm text-blue-600 hover:underline"
                                 >
                                   View
                                 </button>
                               )}
+
                               {inv.status !== "CANCELLED" && (
                                 <button
                                   onClick={() => handleDownload(inv._id)}
-                                  className="text-sm text-blue-600 font-medium hover:underline underline-offset-2"
+                                  className="text-sm text-blue-600 hover:underline"
                                 >
                                   Download
                                 </button>
                               )}
+
                               {inv.status !== "CANCELLED" && (
                                 <button
                                   onClick={() => handleCancel(inv._id)}
-                                  className="text-sm text-red-600 font-medium hover:underline underline-offset-2"
+                                  className="text-sm text-red-600 hover:underline"
                                 >
                                   Cancel
                                 </button>
                               )}
                             </div>
                           </TableCell>
+
                         </TableRow>
                       ))}
                     </TableBody>
@@ -305,52 +339,83 @@ const InvoicePage = () => {
                 {/* ── Mobile Cards ── */}
                 <div className="md:hidden space-y-3">
                   {invoices.map((inv: any) => (
-                    <Card key={inv._id} className="shadow-none border">
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-center mb-2">
-                          <p className="font-semibold text-sm">{inv.invoiceNumber}</p>
+                    <Card key={inv._id} className="border shadow-sm rounded-2xl">
+                      <CardContent className="p-4 space-y-2">
+
+                        {/* Top Row */}
+                        <div className="flex justify-between items-center">
+                          <p className="font-semibold text-sm tracking-wide">
+                            {inv.invoiceNumber}
+                          </p>
+
                           <Badge
-                            variant={inv.status === "CANCELLED" ? "destructive" : "default"}
                             className={
                               inv.status === "CANCELLED"
-                                ? "bg-red-100 text-red-600 hover:bg-red-100"
-                                : "bg-green-100 text-green-700 hover:bg-green-100"
+                                ? "bg-red-100 text-red-600"
+                                : "bg-green-100 text-green-700"
                             }
                           >
                             {inv.status || "FINAL"}
                           </Badge>
                         </div>
 
-                        <p className="text-sm text-foreground">{inv.customer?.name || "—"}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {new Date(inv.createdAt).toLocaleDateString("en-IN")}
-                        </p>
-                        <p className="font-bold text-base mt-2">
-                          ₹{inv.totalAmount?.toLocaleString("en-IN")}
-                        </p>
+                        {/* Customer */}
+                        <div className="leading-tight">
+                          <p className="text-sm font-medium truncate">
+                            {inv.customer?.name || "—"}
+                          </p>
+                          {inv.customer?.address && (
+                            <p className="text-xs text-muted-foreground truncate">
+                              {inv.customer.address}
+                            </p>
+                          )}
+                        </div>
 
-                        <div className="flex gap-4 mt-3 text-xs font-medium">
-                          {inv.filePath && inv.status !== "CANCELLED" && (
-                                <button
-                                  // href={`${import.meta.env.VITE_API_BASE_URL}/${inv.filePath}`}
-                                  onClick={() => handleInvoiceById(inv._id)}
-                                  className="text-sm text-blue-600 font-medium hover:underline underline-offset-2"
-                                >
-                                  View
-                                </button>
-                              )}
-                              {inv.status !== "CANCELLED" && (
-                                <button
-                                  onClick={() => handleDownload(inv._id)}
-                                  className="text-sm text-blue-600 font-medium hover:underline underline-offset-2"
-                                >
-                                  Download
-                                </button>
-                              )}
+                        {/* Date + Amount Row */}
+                        <div className="flex justify-between items-center pt-1">
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(inv.createdAt).toLocaleString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: true,
+                            })}
+                          </p>
+
+                          <p className="font-semibold text-base">
+                            ₹{inv.totalAmount?.toLocaleString("en-IN")}
+                          </p>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex justify-between items-center pt-2 border-t text-xs font-medium">
+
+                          <div className="flex gap-4">
+                            {inv.filePath && inv.status !== "CANCELLED" && (
+                              <button
+                                onClick={() => handleInvoiceById(inv._id)}
+                                className="text-blue-600"
+                              >
+                                View
+                              </button>
+                            )}
+
+                            {inv.status !== "CANCELLED" && (
+                              <button
+                                onClick={() => handleDownload(inv._id)}
+                                className="text-blue-600"
+                              >
+                                Download
+                              </button>
+                            )}
+                          </div>
+
                           {inv.status !== "CANCELLED" && (
                             <button
                               onClick={() => handleCancel(inv._id)}
-                              className="text-red-600 hover:underline"
+                              className="text-red-600"
                             >
                               Cancel
                             </button>
