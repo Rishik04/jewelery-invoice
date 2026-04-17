@@ -830,16 +830,17 @@ export const createPDF = async (invoice, res = null) => {
   let filePath = null;
   let diskStream = null;
   let fullPath = null;
+  let companyId = company._id.toString()
 
   if (res) {
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `inline; filename="${fileName}"`);
     doc.pipe(res);
   } else {
-    fullPath = path.join(INVOICE_DIR, fileName);
+    fullPath = path.join(INVOICE_DIR, companyId, fileName);
     fullPath = fullPath;
     logger.info("File path for invoice " + fullPath);
-    filePath = `invoices/${fileName}`;
+    filePath = `invoices/${companyId}/${fileName}`;
     fs.mkdirSync(path.dirname(fullPath), { recursive: true });
     diskStream = fs.createWriteStream(fullPath);
     doc.pipe(diskStream);
@@ -861,7 +862,7 @@ export const createPDF = async (invoice, res = null) => {
       diskStream.on("finish", resolve);
       diskStream.on("error", reject);
     });
-    return { fullPath, filePath, fileName };
+    return { fullPath, filePath, fileName, companyId: company._id };
   }
 
   return { fileName };

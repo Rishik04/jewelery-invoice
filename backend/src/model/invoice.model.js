@@ -16,7 +16,7 @@ const invoiceItemSchema = new mongoose.Schema({
   rate: { type: Number, required: true },
   total: { type: Number, required: true }, // weight * quantity * rate
   makingCharges: { type: Number, required: true },
-  otherCharges: {type: Number}
+  otherCharges: { type: Number },
 });
 
 const invoiceSchema = new mongoose.Schema(
@@ -47,12 +47,13 @@ const invoiceSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: Object.values(STATUS),
-      default: Object.values(STATUS)[0]
+      default: Object.values(STATUS)[0],
     },
     createdAt: { type: Date, default: Date.now },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
+invoiceSchema.index({ companyId: 1, invoiceNumber: 1 }, { unique: true });
 
 const InvoiceModel = mongoose.model("Invoice", invoiceSchema);
 export default InvoiceModel;
