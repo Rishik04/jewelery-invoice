@@ -27,7 +27,7 @@ export const generateInvoice = async (req, res) => {
     logger.info("Generate invoice filepath " + filePath);
     const fileName = result.fileName;
 
-    await updateInvoiceFilePath(invoice.invoiceNumber, filePath);
+    await updateInvoiceFilePath(invoice.invoiceNumber, filePath, result.companyId);
 
     // 4. Stream PDF to client, then clean up temp file
     res.download(fullPath, fileName, (err) => {
