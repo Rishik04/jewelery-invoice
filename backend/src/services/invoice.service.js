@@ -142,9 +142,9 @@ export const createInvoiceNumber = async (companyId) => {
   return `SJ_${fy}_${String(seq).padStart(4, "0")}`;
 };
 
-export const updateInvoiceFilePath = async (invoiceNumber, filePath) => {
+export const updateInvoiceFilePath = async (invoiceNumber, filePath, companyId) => {
   return await InvoiceModel.findOneAndUpdate(
-    { invoiceNumber },
+    { companyId, invoiceNumber },
     { filePath },
     { new: true },
   );
