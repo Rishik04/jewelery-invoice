@@ -1,16 +1,16 @@
 import { motion } from "framer-motion";
 import {
-  AlertTriangle, Building2, CreditCard, Edit, Filter,
-  LayoutGrid, List, Mail, MapPin, PlusCircle, Receipt, Search, Trash2,
+  AlertTriangle, Building2, CreditCard, Edit,
+  Mail, MapPin, PlusCircle, Receipt,
+  Trash2
 } from "lucide-react";
-import { useState } from "react";
 import { useNavigate } from "react-router";
 
 const CompanyCard = ({ company, index, onEdit, onDelete, onView }: any) => (
   <motion.div
     initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}
     whileHover={{ scale: 1.01 }}
-    className="group bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-white/30 shadow-xl hover:shadow-2xl transition-all duration-500 relative overflow-hidden"
+    className="group bg-white/90 rounded-2xl p-6 border border-white/30 transition-all duration-500 relative overflow-hidden"
   >
     <div className="mb-4">
       <div className="flex items-center gap-3 mb-3">
@@ -51,20 +51,14 @@ const CompanyCard = ({ company, index, onEdit, onDelete, onView }: any) => (
 );
 
 const ModernCompanyTable = ({
-  filteredCompanies, loading, error, searchTerm, setSearchTerm,
+  filteredCompanies, loading, error, searchTerm,
   handleEdit, handleDelete, handleAddNew,
 }: any) => {
-  // FIX: viewMode and filterStatus were props from parent but parent never passed them
-  // moved to local state here
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [filterStatus, setFilterStatus] = useState("all");
   const navigate = useNavigate();
 
   const handleView = (company: any) => navigate(`/${company._id}/invoice`);
 
-  const displayCompanies = filterStatus === "all"
-    ? filteredCompanies
-    : filteredCompanies?.filter((c: any) => c.status === filterStatus);
+  const displayCompanies = filteredCompanies
 
   const renderContent = () => {
     if (loading) return (
@@ -100,7 +94,7 @@ const ModernCompanyTable = ({
     );
 
     return (
-      <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" : "flex flex-col gap-4"}>
+      <div className={"grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"}>
         {displayCompanies.map((company: any, i: number) => (
           <CompanyCard key={company._id} company={company} index={i} onEdit={handleEdit} onDelete={handleDelete} onView={handleView} />
         ))}
@@ -119,35 +113,8 @@ const ModernCompanyTable = ({
               <Building2 size={20} className="text-white" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Companies</h2>
+              <h2 className="text-2xl font-bold text-gray-900">My Company</h2>
               <p className="text-gray-500 text-sm">Manage your business entities</p>
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
-            <div className="relative flex-1 lg:w-72">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input type="text" placeholder="Search companies..." value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-white/80 border-2 border-gray-200/50 rounded-xl outline-none focus:border-blue-400 font-medium text-sm" />
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
-                  className="pl-3 pr-7 py-2.5 bg-white/80 border-2 border-gray-200/50 rounded-xl outline-none font-medium text-sm appearance-none cursor-pointer">
-                  <option value="all">All</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-                <Filter size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-              </div>
-              <div className="flex gap-1">
-                <button onClick={() => setViewMode("grid")} className={`p-2 rounded-lg ${viewMode === "grid" ? "bg-blue-100 text-blue-600" : "text-gray-400 hover:bg-gray-100"}`}><LayoutGrid size={17} /></button>
-                <button onClick={() => setViewMode("list")} className={`p-2 rounded-lg ${viewMode === "list" ? "bg-blue-100 text-blue-600" : "text-gray-400 hover:bg-gray-100"}`}><List size={17} /></button>
-              </div>
-              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleAddNew}
-                className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2.5 rounded-xl font-bold shadow-lg text-sm flex items-center gap-2 whitespace-nowrap">
-                <PlusCircle size={16} /> Add Company
-              </motion.button>
             </div>
           </div>
         </div>
