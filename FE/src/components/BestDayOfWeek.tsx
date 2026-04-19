@@ -110,26 +110,26 @@ const BestDayOfWeekCard = () => {
       {/* ── Summary pills ─────────────────────────────────────────────────── */}
       {hasData && (
         <div className="flex gap-3 mb-5">
-          <div className="flex-1 bg-indigo-50 rounded-2xl px-4 py-3">
+          <div className="flex-1 bg-indigo-50 rounded-2xl px-3 py-3">
             <p className="text-xs font-bold uppercase tracking-widest text-indigo-400 mb-1">
               Best revenue
             </p>
             <p className="text-lg font-bold text-indigo-700">{bestDay?.name}</p>
-            <p className="text-xs text-gray-500 mt-0.5">₹{bestDay?.revenueK}K total</p>
+            <p className="text-xs text-gray-500 mt-0.5">₹{bestDay?.revenueK}K Total</p>
           </div>
-          <div className="flex-1 bg-purple-50 rounded-2xl px-4 py-3">
+          <div className="flex-1 bg-purple-50 rounded-2xl px-3 py-3">
             <p className="text-xs font-bold uppercase tracking-widest text-purple-400 mb-1">
               Most invoices
             </p>
             <p className="text-lg font-bold text-purple-700">{busiestDay?.name}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{busiestDay?.count} invoices</p>
+            <p className="text-xs text-gray-500 mt-0.5">{busiestDay?.count} Invoices</p>
           </div>
-          <div className="flex-1 bg-cyan-50 rounded-2xl px-4 py-3">
+          <div className="flex-1 bg-cyan-50 rounded-2xl px-3 py-3">
             <p className="text-xs font-bold uppercase tracking-widest text-cyan-400 mb-1">
-              Weekly total
+              Weekly Total
             </p>
             <p className="text-lg font-bold text-cyan-700">₹{totalRevK}K</p>
-            <p className="text-xs text-gray-500 mt-0.5">all combined</p>
+            <p className="text-xs text-gray-500 mt-0.5">All Combined</p>
           </div>
         </div>
       )}

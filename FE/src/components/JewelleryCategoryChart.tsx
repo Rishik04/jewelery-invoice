@@ -138,7 +138,7 @@ const JewelleryCategoryChart = () => {
                 .sort((a, b) => b.weight - a.weight)
                 .slice(0, 8);                         // top 8
 
-            const totalWeight = items.reduce((s, i) => s + i.weight, 0);
+            const totalWeight = Number(items.reduce((s, i) => s + i.weight, 0).toFixed(2));
             const totalRevenueK = Math.round(items.reduce((s, i) => s + i.revenueK, 0) * 10) / 10;
             const totalCount = items.reduce((s, i) => s + i.count, 0);
 
@@ -193,19 +193,19 @@ const JewelleryCategoryChart = () => {
             {/* ── Summary pill for active tab ───────────────────────────────────── */}
             {currentData && currentData.totalCount > 0 && (
                 <div className={`flex gap-3 mb-5`}>
-                    <div className={`flex-1 ${currentTab.pill} rounded-2xl px-4 py-3`}>
+                    <div className={`flex-1 ${currentTab.pill} rounded-2xl px-3 py-3`}>
                         <p className={`text-xs font-bold uppercase tracking-widest ${currentTab.pillText} mb-1`}>
                             Total weight
                         </p>
                         <p className={`text-lg font-bold ${currentTab.pillText}`}>{currentData.totalWeight}g</p>
                     </div>
-                    <div className={`flex-1 ${currentTab.pill} rounded-2xl px-4 py-3`}>
+                    <div className={`flex-1 ${currentTab.pill} rounded-2xl px-3 py-3`}>
                         <p className={`text-xs font-bold uppercase tracking-widest ${currentTab.pillText} mb-1`}>
                             Revenue
                         </p>
                         <p className={`text-lg font-bold ${currentTab.pillText}`}>₹{currentData.totalRevenueK}K</p>
                     </div>
-                    <div className={`flex-1 ${currentTab.pill} rounded-2xl px-4 py-3`}>
+                    <div className={`flex-1 ${currentTab.pill} rounded-2xl px-3 py-3`}>
                         <p className={`text-xs font-bold uppercase tracking-widest ${currentTab.pillText} mb-1`}>
                             Items sold
                         </p>
