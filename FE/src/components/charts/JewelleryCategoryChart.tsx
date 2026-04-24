@@ -33,8 +33,8 @@ const TABS = [
         label: "Gold 18K",
         cat: "GOLD",
         karat: "18K",
-        barFrom: "#8b5cf6",   // purple start — ties to Daily Sales today-bar
-        barTo: "#a855f7",   // violet end
+        barFrom: "#8b5cf6",
+        barTo: "#a855f7",
         gradId: "gTab18K",
         active: "bg-purple-50 text-purple-700 border-purple-200",
         inactive: "text-gray-500 hover:text-purple-600",
@@ -47,9 +47,9 @@ const TABS = [
         key: "SILVER",
         label: "Silver",
         cat: "SILVER",
-        karat: null,         // all karats
-        barFrom: "#06b6d4",   // cyan start  — ties to Daily Sales gradient
-        barTo: "#6366f1",   // indigo end
+        karat: null,
+        barFrom: "#06b6d4",
+        barTo: "#6366f1",
         gradId: "gTabSilver",
         active: "bg-cyan-50 text-cyan-700 border-cyan-200",
         inactive: "text-gray-500 hover:text-cyan-600",
@@ -99,13 +99,13 @@ const JewelleryCategoryChart = () => {
         [invoices]
     );
 
-    // ── Per-tab aggregated data ───────────────────────────────────────────────
     const tabData = useMemo(() => {
         const result: Record<TabKey, {
             items: { name: string; weight: number; revenueK: number; count: number }[];
             totalWeight: number;
             totalRevenueK: number;
             totalCount: number;
+            totalItems: number;
         }> = {} as any;
 
         for (const tab of TABS) {
@@ -123,33 +123,34 @@ const JewelleryCategoryChart = () => {
                     const key = item.name?.trim() ?? "Unknown";
                     if (!map[key]) map[key] = { weight: 0, revenue: 0, count: 0 };
                     map[key].weight += item.weight ?? 0;
-                    map[key].revenue += item.total ?? 0;
+                    map[key].revenue += (item.total + item.makingCharges) * 1.03;
                     map[key].count += item.quantity ?? 1;
                 }
             }
 
-            const items = Object.entries(map)
+            // All unique item types sorted by weight
+            const allItems = Object.entries(map)
                 .map(([name, v]) => ({
                     name,
                     weight: v.weight,
                     revenueK: Math.round((v.revenue / 1000) * 10) / 10,
                     count: v.count,
                 }))
-                .sort((a, b) => b.weight - a.weight)
-                .slice(0, 8);                         // top 8
+                .sort((a, b) => b.weight - a.weight);
 
-            const totalWeight = Number(items.reduce((s, i) => s + i.weight, 0).toFixed(2));
-            const totalRevenueK = Math.round(items.reduce((s, i) => s + i.revenueK, 0) * 10) / 10;
-            const totalCount = items.reduce((s, i) => s + i.count, 0);
+            const items = allItems.slice(0, 8);
 
-            result[tab.key] = { items, totalWeight, totalRevenueK, totalCount };
+            const totalWeight = Number(allItems.reduce((s, i) => s + i.weight, 0).toFixed(2));
+            const totalRevenueK = Math.round(allItems.reduce((s, i) => s + i.revenueK, 0) * 10) / 10;
+            const totalCount = allItems.reduce((s, i) => s + i.count, 0);
+            const totalItems = allItems.length;
+
+            result[tab.key] = { items, totalWeight, totalRevenueK, totalCount, totalItems };
         }
         return result;
     }, [activeInvoices]);
 
-    // ── Visible tabs (only show tabs with data) ───────────────────────────────
     const visibleTabs = TABS.filter((t) => tabData[t.key]?.items.length > 0);
-
     const currentTab = TABS.find((t) => t.key === activeTab) ?? TABS[0];
     const currentData = tabData[activeTab];
     const chartHeight = Math.max(180, (currentData?.items.length ?? 0) * 44);
@@ -161,7 +162,7 @@ const JewelleryCategoryChart = () => {
             transition={{ duration: 0.6, delay: 0.15 }}
             className="bg-white/80 backdrop-blur-lg rounded-3xl p-6 border border-gray-100 shadow-xl"
         >
-            {/* ── Header ────────────────────────────────────────────────────────── */}
+            {/* ── Header ──────────────────────────────────────────────────── */}
             <div className="flex items-center justify-between mb-5">
                 <div>
                     <h3 className="text-xl font-bold text-gray-900">Items Sold by Weight</h3>
@@ -172,49 +173,55 @@ const JewelleryCategoryChart = () => {
                 </div>
             </div>
 
-            {/* ── Tabs ──────────────────────────────────────────────────────────── */}
-            <div className="flex gap-2 mb-5">
-                {visibleTabs.map((tab) => (
-                    <button
-                        key={tab.key}
-                        onClick={() => setActiveTab(tab.key)}
-                        className={`
-              px-4 py-1.5 rounded-xl text-sm font-semibold border transition-all duration-200
-              ${activeTab === tab.key
-                                ? tab.active + " shadow-sm"
-                                : "bg-transparent border-transparent " + tab.inactive}
-            `}
-                    >
-                        {tab.label}
-                    </button>
-                ))}
+            {/* ── Tabs + sliced note ───────────────────────────────────────── */}
+            <div className="flex items-center justify-between mb-5">
+                <div className="flex gap-2">
+                    {visibleTabs.map((tab) => (
+                        <button
+                            key={tab.key}
+                            onClick={() => setActiveTab(tab.key)}
+                            className={`
+                                px-4 py-1.5 rounded-xl text-sm font-semibold border transition-all duration-200
+                                ${activeTab === tab.key
+                                    ? tab.active + " shadow-sm"
+                                    : "bg-transparent border-transparent " + tab.inactive}
+                            `}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+
             </div>
 
-            {/* ── Summary pill for active tab ───────────────────────────────────── */}
+            {/* ── Pills — full category totals, not top-8 ─────────────────── */}
             {currentData && currentData.totalCount > 0 && (
-                <div className={`flex gap-3 mb-5`}>
+                <div className="flex gap-3 mb-5">
                     <div className={`flex-1 ${currentTab.pill} rounded-2xl px-3 py-3`}>
                         <p className={`text-xs font-bold uppercase tracking-widest ${currentTab.pillText} mb-1`}>
                             Total weight
                         </p>
                         <p className={`text-lg font-bold ${currentTab.pillText}`}>{currentData.totalWeight}g</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">{currentData.totalItems} Items</p>
                     </div>
                     <div className={`flex-1 ${currentTab.pill} rounded-2xl px-3 py-3`}>
                         <p className={`text-xs font-bold uppercase tracking-widest ${currentTab.pillText} mb-1`}>
                             Revenue
                         </p>
                         <p className={`text-lg font-bold ${currentTab.pillText}`}>₹{currentData.totalRevenueK}K</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">{currentData.totalItems} Items</p>
                     </div>
                     <div className={`flex-1 ${currentTab.pill} rounded-2xl px-3 py-3`}>
                         <p className={`text-xs font-bold uppercase tracking-widest ${currentTab.pillText} mb-1`}>
                             Items sold
                         </p>
                         <p className={`text-lg font-bold ${currentTab.pillText}`}>{currentData.totalCount}</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">{currentData.totalItems} Items</p>
                     </div>
                 </div>
             )}
 
-            {/* ── Chart ─────────────────────────────────────────────────────────── */}
+            {/* ── Chart — top 8 only ───────────────────────────────────────── */}
             <div style={{ height: chartHeight }}>
                 {isLoading ? (
                     <div className="flex items-center justify-center h-full text-gray-400 text-sm animate-pulse">
@@ -240,7 +247,6 @@ const JewelleryCategoryChart = () => {
                                     </linearGradient>
                                 ))}
                             </defs>
-
                             <XAxis
                                 type="number"
                                 tick={{ fontSize: 11, fill: "#9ca3af" }}
