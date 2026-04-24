@@ -1,13 +1,11 @@
-// useCreateCompany and useUpdateCompany removed from here — CompanyForm owns its mutations.
-// Having both fire was causing every submit to hit the API twice.
 import { useCompany, useDeleteCompany } from "@/features/company/useCompany";
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertTriangle } from "lucide-react";
 import { useState } from "react";
-import ModernCompanyForm from "./CompanyForm";
-import ModernCompanyTable from "./CompanyTable";
-import ModernDashboardHeader from "./DashboardHeader";
-import ModernDashboardStats from "./DashboardStats";
+import ModernCompanyForm from "../components/Dashboard/CompanyForm";
+import ModernCompanyTable from "../components/Dashboard/CompanyTable";
+import ModernDashboardHeader from "../components/Dashboard/DashboardHeader";
+import ModernDashboardStats from "../components/Dashboard/DashboardStats";
 
 const ModernCompanyDashboard = () => {
   const { data: company, isLoading: loading, error } = useCompany();

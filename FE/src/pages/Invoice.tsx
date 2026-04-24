@@ -1,7 +1,7 @@
 import { useBulkDownloadInvoices, useCancelInvoice, useInvoices } from "@/features/invoice/useInvoice";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ConfirmDialog } from "./ConfirmDialog";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

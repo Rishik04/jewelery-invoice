@@ -10,8 +10,9 @@ import {
   XAxis,
   YAxis
 } from "recharts";
-import BestDayOfWeekCard from "../BestDayOfWeek";
-import JewelleryCategoryChart from "../JewelleryCategoryChart";
+import BestDayOfWeekCard from "../charts/BestDayOfWeek";
+import JewelleryCategoryChart from "../charts/JewelleryCategoryChart";
+import GoldPriceMakingCard from "../charts/GoldPriceMakingCharges";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -155,6 +156,7 @@ const ModernDashboardStats = () => {
       </div>
 
       <JewelleryCategoryChart />
+      <GoldPriceMakingCard />
       <BestDayOfWeekCard />
     </motion.div>
   );

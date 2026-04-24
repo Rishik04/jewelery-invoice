@@ -1,11 +1,11 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import Authentication from "./components/Authentication";
-import CustomerPage from "./components/Customer";
-import ModernCompanyDashboard from "./components/Dashboard/UpdatedDashboard";
-import InvoicePage from "./components/Invoice";
-import InvoiceForm from "./components/InvoiceForm";
+import Authentication from "./pages/Authentication";
+import CustomerPage from "./pages/Customer";
+import ModernCompanyDashboard from "./pages/UpdatedDashboard";
+import InvoicePage from "./pages/Invoice";
+import InvoiceForm from "./pages/InvoiceForm";
 import DashboardLayout from "./components/layouts/DashboardLayout";
-import ProductsPage from "./components/ProductsPage";
+import ProductsPage from "./pages/ProductsPage";
 import { JSX } from "react";
 
 const isLoggedIn = () => !!localStorage.getItem("token");
