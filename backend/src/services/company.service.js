@@ -35,19 +35,35 @@ export const updateCompanyDetails = async (data) => {
 
 //customer services
 export const createCustomerData = async (data, companyId, userId) => {
-  logger.info("adding customer data" + data);
-  const { address, name, phone } = data;
-  const custData = {
-    customerName: name,
-    customerPhone: phone,
-    customerAddress: address,
+  logger.info("Adding customer data", data);
+  const { address = "", name = "", phone = "" } = data;
+  if (!phone?.trim()) return;
+  const formatName = (str = "") =>
+    str
+      .trim()
+      .toLowerCase()
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  const customerName = formatName(name);
+  const existingCustomer = await CustomerModel.findOne({
     companyId,
     userId,
-  };
-  await new CustomerModel(custData).save();
+    customerPhone: phone.trim(),
+  });
+  if (!existingCustomer) {
+    await CustomerModel.create({
+      customerName,
+      customerPhone: phone.trim(),
+      customerAddress: address.trim(),
+      companyId,
+      userId,
+    });
+  }
 };
 
 export const getCustomerByTenantId = async (userId) => {
   logger.info("Get company details with tenant id " + userId);
-  return await CustomerModel.find({ userId: userId }, {userId: 0, companyId: 0});
+  return await CustomerModel.find(
+    { userId: userId },
+    { userId: 0, companyId: 0 },
+  );
 };
