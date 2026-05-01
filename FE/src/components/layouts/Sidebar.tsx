@@ -4,6 +4,7 @@ import { useCompany } from "@/features/company/useCompany";
 import { motion } from "framer-motion";
 import {
   BarChart3,
+  ChartLine,
   ChevronFirst,
   ChevronLast,
   FileText,
@@ -87,6 +88,7 @@ const Sidebar = ({ expanded, setExpanded, isMobile = false }: SidebarProps) => {
             <NavItem icon={<FileText size={18} />} text="Invoices" to="/invoices" />
             <NavItem icon={<Users size={18} />} text="Customers" to="/customers" />
             <NavItem icon={<Sparkle size={18} />} text="Products" to="/products" />
+            <NavItem icon={<ChartLine size={18} />} text="Analytics" to="/analytics" />
           </ul>
         </SidebarContext.Provider>
 

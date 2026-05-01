@@ -1,4 +1,3 @@
-import { useInvoiceStats } from "@/features/invoice/useInvoice";
 import { motion } from "framer-motion";
 import { IndianRupee } from "lucide-react";
 import { useMemo } from "react";
@@ -11,15 +10,10 @@ import {
     ResponsiveContainer,
     Tooltip,
     XAxis,
-    YAxis
+    YAxis,
 } from "recharts";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-// Dashboard palette
-// 22K avg rate  → indigo  #6366f1
-// 18K avg rate  → purple  #8b5cf6
-// Making charges bar → cyan #06b6d4
 
 const ChartTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
@@ -36,14 +30,13 @@ const ChartTooltip = ({ active, payload, label }: any) => {
     );
 };
 
-const GoldPriceMakingCard = () => {
-    const { data: invoiceData, isLoading } = useInvoiceStats();
-    const invoices = invoiceData?.data ?? [];
+interface GoldPriceMakingCardProps {
+    invoices: any[];
+    isLoading?: boolean;
+    currMonthlyInv: any[];
+}
 
-    const activeInvoices = useMemo(
-        () => invoices.filter((inv) => inv.status !== "CANCELLED"),
-        [invoices]
-    );
+const GoldPriceMakingCard = ({ invoices, isLoading, currMonthlyInv }: GoldPriceMakingCardProps) => {
 
     // ── Monthly data ──────────────────────────────────────────────────────────
     const monthlyData = useMemo(() => {
@@ -52,23 +45,18 @@ const GoldPriceMakingCard = () => {
             const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
             const year = d.getFullYear();
             const month = d.getMonth();
-
             const acc = {
                 making: 0,
                 rate22: 0, count22: 0,
                 rate18: 0, count18: 0,
             };
-
-            for (const inv of activeInvoices) {
+            for (const inv of invoices) {
                 const created = new Date(inv.createdAt);
                 if (created.getFullYear() !== year || created.getMonth() !== month) continue;
-
                 for (const item of inv.items ?? []) {
                     const cat = (item.category ?? "").toUpperCase();
                     if (cat !== "GOLD") continue;
-
                     acc.making += item.makingCharges ?? 0;
-
                     if (item.karat === "22K" && item.rate) {
                         acc.rate22 += item.rate;
                         acc.count22 += 1;
@@ -79,7 +67,6 @@ const GoldPriceMakingCard = () => {
                     }
                 }
             }
-
             return {
                 name: MONTHS[month],
                 "22K Rate": acc.count22 > 0 ? Math.round(acc.rate22 / acc.count22) : null,
@@ -87,15 +74,13 @@ const GoldPriceMakingCard = () => {
                 "Making (₹K)": Math.round((acc.making / 1000) * 10) / 10,
             };
         });
-    }, [activeInvoices]);
+    }, [invoices]);
 
-    // ── All-time summary pills ────────────────────────────────────────────────
     const summary = useMemo(() => {
         let totalMaking = 0;
         let rate22Sum = 0, rate22Count = 0;
         let rate18Sum = 0, rate18Count = 0;
-
-        for (const inv of activeInvoices) {
+        for (const inv of currMonthlyInv) {
             for (const item of inv.items ?? []) {
                 const cat = (item.category ?? "").toUpperCase();
                 if (cat !== "GOLD") continue;
@@ -104,15 +89,16 @@ const GoldPriceMakingCard = () => {
                 if (item.karat === "18K" && item.rate) { rate18Sum += item.rate; rate18Count++; }
             }
         }
-
         return {
             totalMakingK: Math.round((totalMaking / 1000) * 10) / 10,
             avg22K: rate22Count > 0 ? Math.round(rate22Sum / rate22Count) : null,
             avg18K: rate18Count > 0 ? Math.round(rate18Sum / rate18Count) : null,
         };
-    }, [activeInvoices]);
+    }, [currMonthlyInv]);
 
     const hasData = monthlyData.some((m) => m["Making (₹K)"] > 0);
+    const subLabel = "Avg ₹/gram (18K & 22K) & Making Collected";
+
 
     return (
         <motion.div
@@ -121,18 +107,18 @@ const GoldPriceMakingCard = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="bg-white/80 backdrop-blur-lg rounded-3xl p-6 border border-gray-100 shadow-xl"
         >
-            {/* ── Header ────────────────────────────────────────────────────────── */}
+            {/* ── Header ── */}
             <div className="flex items-center justify-between mb-5">
                 <div>
                     <h3 className="text-xl font-bold text-gray-900">Gold Rate & Making Charges</h3>
-                    <p className="text-gray-500 text-sm">Avg ₹/gram (18K & 22K) + making collected</p>
+                    <p className="text-gray-500 text-sm">{subLabel}</p>
                 </div>
                 <div className="bg-gradient-to-r from-indigo-500 to-purple-500 p-3 rounded-2xl shadow-md shrink-0">
                     <IndianRupee size={20} className="text-white" />
                 </div>
             </div>
 
-            {/* ── Summary pills ─────────────────────────────────────────────────── */}
+            {/* ── Summary pills ── */}
             <div className="flex gap-3 mb-5">
                 {summary.avg22K && (
                     <div className="flex-1 bg-indigo-50 rounded-2xl px-4 py-3">
@@ -155,7 +141,7 @@ const GoldPriceMakingCard = () => {
                 </div>
             </div>
 
-            {/* ── Composed chart: bars = making, lines = rates ───────────────────── */}
+            {/* ── Chart ── */}
             <div className="h-[210px]">
                 {isLoading ? (
                     <div className="flex items-center justify-center h-full text-gray-400 text-sm animate-pulse">
@@ -167,84 +153,22 @@ const GoldPriceMakingCard = () => {
                     </div>
                 ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                        <ComposedChart
-                            data={monthlyData}
-                            margin={{ top: 8, right: 8, left: -8, bottom: 0 }}
-                        >
+                        <ComposedChart data={monthlyData} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="gMaking" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.85} />
                                     <stop offset="100%" stopColor="#06b6d4" stopOpacity={0.5} />
                                 </linearGradient>
                             </defs>
-
                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.04)" vertical={false} />
-                            <XAxis
-                                dataKey="name"
-                                tick={{ fontSize: 12, fill: "#9ca3af" }}
-                                axisLine={false}
-                                tickLine={false}
-                            />
-                            {/* Left Y — making charges in ₹K */}
-                            <YAxis
-                                yAxisId="making"
-                                orientation="left"
-                                tick={{ fontSize: 10, fill: "#9ca3af" }}
-                                axisLine={false}
-                                tickLine={false}
-                                unit="K"
-                                width={36}
-                            />
-                            {/* Right Y — gold rate ₹/g */}
-                            <YAxis
-                                yAxisId="rate"
-                                orientation="right"
-                                tick={{ fontSize: 10, fill: "#9ca3af" }}
-                                axisLine={false}
-                                tickLine={false}
-                                width={48}
-                                tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}K`}
-                            />
+                            <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
+                            <YAxis yAxisId="making" orientation="left" tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} unit="K" width={36} />
+                            <YAxis yAxisId="rate" orientation="right" tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} width={48} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}K`} />
                             <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(99,102,241,0.04)" }} />
-                            <Legend
-                                iconType="circle"
-                                iconSize={8}
-                                wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
-                                formatter={(v) => <span className="text-gray-500 font-medium">{v}</span>}
-                            />
-
-                            {/* Making charges — bars on left axis */}
-                            <Bar
-                                yAxisId="making"
-                                dataKey="Making (₹K)"
-                                fill="url(#gMaking)"
-                                radius={[6, 6, 0, 0]}
-                                maxBarSize={36}
-                            />
-
-                            {/* 22K rate — line on right axis */}
-                            <Line
-                                yAxisId="rate"
-                                type="monotone"
-                                dataKey="22K Rate"
-                                stroke="#6366f1"
-                                strokeWidth={2.5}
-                                dot={{ r: 4, fill: "#6366f1", strokeWidth: 0 }}
-                                activeDot={{ r: 6 }}
-                                connectNulls
-                            />
-
-                            {/* 18K rate — line on right axis */}
-                            <Line
-                                yAxisId="rate"
-                                type="monotone"
-                                dataKey="18K Rate"
-                                stroke="#8b5cf6"
-                                strokeWidth={2.5}
-                                dot={{ r: 4, fill: "#8b5cf6", strokeWidth: 0 }}
-                                activeDot={{ r: 6 }}
-                                connectNulls
-                            />
+                            <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8 }} formatter={(v) => <span className="text-gray-500 font-medium">{v}</span>} />
+                            <Bar yAxisId="making" dataKey="Making (₹K)" fill="url(#gMaking)" radius={[6, 6, 0, 0]} maxBarSize={36} />
+                            <Line yAxisId="rate" type="monotone" dataKey="22K Rate" stroke="#6366f1" strokeWidth={2.5} dot={{ r: 4, fill: "#6366f1", strokeWidth: 0 }} activeDot={{ r: 6 }} connectNulls />
+                            <Line yAxisId="rate" type="monotone" dataKey="18K Rate" stroke="#8b5cf6" strokeWidth={2.5} dot={{ r: 4, fill: "#8b5cf6", strokeWidth: 0 }} activeDot={{ r: 6 }} connectNulls />
                         </ComposedChart>
                     </ResponsiveContainer>
                 )}

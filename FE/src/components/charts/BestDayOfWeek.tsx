@@ -1,4 +1,3 @@
-import { useInvoiceStats } from "@/features/invoice/useInvoice";
 import { motion } from "framer-motion";
 import { CalendarDays } from "lucide-react";
 import { useMemo } from "react";
@@ -14,10 +13,6 @@ import {
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-// Matches dashboard palette:
-// best day   → indigo  #6366f1  (Growth chart)
-// second     → purple  #8b5cf6  (Daily Sales today-bar)
-// rest       → cyan    #06b6d4  (Daily Sales gradient)
 const getBarColor = (rank: number) => {
   if (rank === 0) return "#6366f1";
   if (rank === 1) return "#8b5cf6";
@@ -48,20 +43,17 @@ const ChartTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-const BestDayOfWeekCard = () => {
-  const { data: invoiceData, isLoading } = useInvoiceStats();
-  const invoices = invoiceData?.data ?? [];
+interface BestDayOfWeekCardProps {
+  invoices: any[];
+  isLoading?: boolean;
+}
 
-  const activeInvoices = useMemo(
-    () => invoices.filter((inv) => inv.status !== "CANCELLED"),
-    [invoices]
-  );
-
+const BestDayOfWeekCard = ({ invoices, isLoading }: BestDayOfWeekCardProps) => {
   const dayData = useMemo(() => {
     const map: Record<number, { revenue: number; count: number }> = {};
     for (let i = 0; i < 7; i++) map[i] = { revenue: 0, count: 0 };
 
-    for (const inv of activeInvoices) {
+    for (const inv of invoices) {
       const day = new Date(inv.createdAt).getDay();
       map[day].revenue += inv.totalAmount ?? 0;
       map[day].count += 1;
@@ -75,18 +67,19 @@ const BestDayOfWeekCard = () => {
       const v = map[i];
       const rank = sorted.findIndex((s) => s.day === i);
       const revenueK = Math.round((v.revenue / 1000) * 10) / 10;
-      const avgK = v.count > 0
-        ? Math.round((v.revenue / v.count / 1000) * 10) / 10
-        : 0;
+      const avgK =
+        v.count > 0
+          ? Math.round((v.revenue / v.count / 1000) * 10) / 10
+          : 0;
       return { name, revenueK, count: v.count, avgK, rank };
     });
-  }, [activeInvoices]);
+  }, [invoices]);
 
   const bestDay = [...dayData].sort((a, b) => b.revenueK - a.revenueK)[0];
-  const totalRevK = Math.round(dayData.reduce((s, d) => s + d.revenueK, 0) * 10) / 10;
+  const totalRevK =
+    Math.round(dayData.reduce((s, d) => s + d.revenueK, 0) * 10) / 10;
   const busiestCount = Math.max(...dayData.map((d) => d.count));
   const busiestDay = dayData.find((d) => d.count === busiestCount);
-
   const hasData = dayData.some((d) => d.count > 0);
 
   return (
@@ -96,7 +89,7 @@ const BestDayOfWeekCard = () => {
       transition={{ duration: 0.6, delay: 0.2 }}
       className="bg-white/80 backdrop-blur-lg rounded-3xl p-6 border border-gray-100 shadow-xl"
     >
-      {/* ── Header ────────────────────────────────────────────────────────── */}
+      {/* ── Header ── */}
       <div className="flex items-center justify-between mb-5">
         <div>
           <h3 className="text-xl font-bold text-gray-900">Best Day of Week</h3>
@@ -107,7 +100,7 @@ const BestDayOfWeekCard = () => {
         </div>
       </div>
 
-      {/* ── Summary pills ─────────────────────────────────────────────────── */}
+      {/* ── Summary pills ── */}
       {hasData && (
         <div className="flex gap-3 mb-5">
           <div className="flex-1 bg-indigo-50 rounded-2xl px-3 py-3">
@@ -126,7 +119,7 @@ const BestDayOfWeekCard = () => {
           </div>
           <div className="flex-1 bg-cyan-50 rounded-2xl px-3 py-3">
             <p className="text-xs font-bold uppercase tracking-widest text-cyan-400 mb-1">
-              Weekly Total
+              Period Total
             </p>
             <p className="text-lg font-bold text-cyan-700">₹{totalRevK}K</p>
             <p className="text-xs text-gray-500 mt-0.5">All Combined</p>
@@ -134,7 +127,7 @@ const BestDayOfWeekCard = () => {
         </div>
       )}
 
-      {/* ── Chart ─────────────────────────────────────────────────────────── */}
+      {/* ── Chart ── */}
       <div className="h-[220px]">
         {isLoading ? (
           <div className="flex items-center justify-center h-full text-gray-400 text-sm animate-pulse">
@@ -187,7 +180,7 @@ const BestDayOfWeekCard = () => {
         )}
       </div>
 
-      {/* ── Day rank legend ───────────────────────────────────────────────── */}
+      {/* ── Legend ── */}
       {hasData && (
         <div className="flex gap-3 mt-4">
           {[

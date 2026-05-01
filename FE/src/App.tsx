@@ -7,6 +7,7 @@ import InvoiceForm from "./pages/InvoiceForm";
 import DashboardLayout from "./components/layouts/DashboardLayout";
 import ProductsPage from "./pages/ProductsPage";
 import { JSX } from "react";
+import MonthlyAnalyticsPage from "./pages/MonthlyAnalytics";
 
 const isLoggedIn = () => !!localStorage.getItem("token");
 
@@ -35,6 +36,7 @@ function App() {
           <Route path="customers" element={<CustomerPage />} />
           <Route path="invoices" element={<InvoicePage />} />
           <Route path="products" element={<ProductsPage />} />
+          <Route path="analytics" element={<MonthlyAnalyticsPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
